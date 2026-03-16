@@ -187,3 +187,5 @@ python scripts/run_patient_sim_benchmark.py --scenarios data/sim_patient_cases.j
 
 - [Huatuo 系列模型调研](./huatuo_series_research_zh.md)
 - [基模选择决策](./base_model_choice_zh.md)
+- [第一阶段训练方案](./stage1_training_plan_zh.md)
+- [RAG 文档源方案](./rag_sources_zh.md)
