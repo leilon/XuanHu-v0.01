@@ -53,6 +53,13 @@
 3. 分诊与安全边界
 4. RAG / 工具调用 / 长期记忆融合
 
+这里建议进一步拆成两个 adapter 方向：
+
+- `BianQue-Intake`
+  - 只吃短轮次、一问一答式的追问数据
+- `LiShiZhen-Education`
+  - 吃长解释、科普、指标释义、患者友好说明数据
+
 当前脚本：
 
 - [prepare_text_sft_stage1.py](../scripts/prepare_text_sft_stage1.py)

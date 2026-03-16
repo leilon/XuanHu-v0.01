@@ -53,6 +53,7 @@ bash scripts/autodl_prepare_workspace.sh /root/autodl-tmp/medagent
 还要补内部数据：
 
 - 首程问诊轨迹
+- 科普解释轨迹
 - 分诊结论
 - 报告解释
 - 问药和药物禁忌
@@ -68,7 +69,7 @@ bash scripts/autodl_prepare_workspace.sh /root/autodl-tmp/medagent
 
 - 不要直接用长篇解释型答案去训 `BianQue-Intake`
 - 更适合训成“一问一答”的追问风格
-- 长解释样本留给后续患者解释 / 科普 / 报告解读 adapter
+- 长解释样本留给后续 `LiShiZhen-Education` / 报告解读 adapter
 
 ## 4. QLoRA 阶段
 

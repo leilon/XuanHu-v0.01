@@ -48,5 +48,6 @@ class AdapterBank:
             return "report_qa"
         if any(tok in query for tok in ("药", "用药", "剂量", "禁忌")):
             return "medication_qa"
+        if any(tok in query for tok in ("是什么", "什么意思", "原理", "区别", "科普", "为什么")):
+            return "education_qa"
         return "general_intake"
-

@@ -1,3 +1,4 @@
+from medagent.agents.education import EducationAgent
 from medagent.agents.intake import IntakeAgent
 from medagent.agents.medication import MedicationAgent
 from medagent.agents.report import ReportAgent
@@ -6,6 +7,7 @@ from medagent.config import AppConfig
 from medagent.schema import AgentMessage, OrchestratorState, UserContext
 from medagent.services.adapter_bank import AdapterBank
 from medagent.services.clinical_pathway import extract_profile_updates
+from medagent.services.intent_router import IntentRouter
 from medagent.services.memory import MemoryStore
 from medagent.services.memory_fusion import MemoryFusionEngine
 from medagent.services.rag import RAGService
@@ -18,21 +20,28 @@ class Orchestrator:
         self.memory = MemoryStore()
         self.rag = RAGService()
         self.safety = SafetyGuard(self.config)
+        self.intent_router = IntentRouter()
         self.intake = IntakeAgent()
         self.triage = TriageAgent()
         self.medication = MedicationAgent()
         self.report = ReportAgent()
+        self.education = EducationAgent()
         self.adapter_bank = AdapterBank(self.config.adapter_bank_dir)
         self.memory_fusion = MemoryFusionEngine(self.memory, self.adapter_bank)
 
     def _section_title(self, task: str) -> str:
         return self.config.branding.section_label(task)
 
-    def _plan(self, user_text: str) -> list[str]:
-        tasks = ["intake", "triage", "medication", "rag_summary"]
-        if any(k in user_text for k in ("报告", "化验", "影像", "白细胞", "CT", "MRI", "胸片", "彩超")):
-            tasks.insert(2, "report")
-        return tasks
+    def _plan(self, intent: str) -> list[str]:
+        if intent == "patient_education":
+            return ["education", "rag_summary"]
+        if intent == "education_report":
+            return ["education", "rag_summary"]
+        if intent == "report_followup":
+            return ["report", "intake", "triage", "medication", "rag_summary"]
+        if intent == "medication_followup":
+            return ["intake", "medication", "triage", "rag_summary"]
+        return ["intake", "triage", "medication", "rag_summary"]
 
     def _build_user_context(self, user_id: str, age: int | None, sex: str | None) -> UserContext:
         profile = self.memory.build_clinical_snapshot(user_id)
@@ -54,8 +63,11 @@ class Orchestrator:
             user_context=ctx,
             messages=[AgentMessage(role="user", content=user_text)],
         )
+        route = self.intent_router.route(user_text)
+        state.intent = route.intent
+        state.artifacts["route"] = {"intent": route.intent, "reason": route.reason}
         state.risk_level = self.safety.detect_risk(user_text)
-        state.tasks = self._plan(user_text)
+        state.tasks = self._plan(route.intent)
 
         self.memory.append_turn(user_id, user_text)
         if ctx.age is not None:
@@ -71,6 +83,17 @@ class Orchestrator:
                 sections.append(f"[{self._section_title(task)}]\n{self.triage.run(state)}")
             elif task == "report":
                 sections.append(f"[{self._section_title(task)}]\n{self.report.run(state)}")
+            elif task == "education":
+                docs = self.rag.retrieve(user_text, top_k=3)
+                state.artifacts["education_docs"] = [
+                    {
+                        "source": d.source,
+                        "chunk": d.chunk,
+                        "source_type": d.source_type,
+                    }
+                    for d in docs
+                ]
+                sections.append(f"[{self._section_title(task)}]\n{self.education.run(state)}")
             elif task == "medication":
                 sections.append(f"[{self._section_title(task)}]\n{self.medication.run(state)}")
             elif task == "rag_summary":

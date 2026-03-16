@@ -11,6 +11,7 @@ class BrandingConfig:
     triage_name: str = "HuaTuo-Triage"
     medication_name: str = "ShenNong-Medication"
     report_name: str = "CangGong-Report"
+    education_name: str = "LiShiZhen-Education"
     memory_name: str = "SiMiao-Memory"
     safety_name: str = "ZhongJing-Guard"
 
@@ -19,6 +20,7 @@ class BrandingConfig:
             "intake": f"{self.intake_name} | 病情采集",
             "triage": f"{self.triage_name} | 分诊建议",
             "report": f"{self.report_name} | 报告分析",
+            "education": f"{self.education_name} | 医学科普",
             "medication": f"{self.medication_name} | 用药建议",
             "rag_summary": f"{self.orchestrator_name} | 知识依据",
         }

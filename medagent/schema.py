@@ -25,6 +25,7 @@ class OrchestratorState:
     user_context: UserContext
     messages: list[AgentMessage] = field(default_factory=list)
     tasks: list[str] = field(default_factory=list)
+    intent: str = "general_intake"
     evidence: list[dict[str, Any]] = field(default_factory=list)
     risk_level: str = "unknown"
     final_response: str = ""
