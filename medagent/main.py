@@ -1,10 +1,14 @@
 import argparse
 
+from medagent.config import AppConfig
 from medagent.orchestrator import Orchestrator
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="MedAgent scaffold runner")
+    branding = AppConfig().branding
+    parser = argparse.ArgumentParser(
+        description=f"{branding.project_name_en} ({branding.project_name_zh}) runner"
+    )
     parser.add_argument("--user-id", default="demo_user")
     parser.add_argument("--question", required=True)
     parser.add_argument("--age", type=int, default=None)
@@ -23,4 +27,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

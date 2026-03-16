@@ -4,7 +4,8 @@ from medagent.services.clinical_pathway import build_triage_decision
 
 
 class TriageAgent(BaseAgent):
-    name = "triage"
+    task_name = "triage"
+    display_name = "HuaTuo-Triage"
 
     def run(self, state: OrchestratorState) -> str:
         decision = build_triage_decision(state)

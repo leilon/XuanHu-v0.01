@@ -25,6 +25,9 @@ class Orchestrator:
         self.adapter_bank = AdapterBank(self.config.adapter_bank_dir)
         self.memory_fusion = MemoryFusionEngine(self.memory, self.adapter_bank)
 
+    def _section_title(self, task: str) -> str:
+        return self.config.branding.section_label(task)
+
     def _plan(self, user_text: str) -> list[str]:
         tasks = ["intake", "triage", "medication", "rag_summary"]
         if any(k in user_text for k in ("报告", "化验", "影像", "白细胞", "CT", "MRI", "胸片", "彩超")):
@@ -63,18 +66,18 @@ class Orchestrator:
         sections: list[str] = []
         for task in state.tasks:
             if task == "intake":
-                sections.append(f"[病情采集]\n{self.intake.run(state)}")
+                sections.append(f"[{self._section_title(task)}]\n{self.intake.run(state)}")
             elif task == "triage":
-                sections.append(f"[分诊建议]\n{self.triage.run(state)}")
+                sections.append(f"[{self._section_title(task)}]\n{self.triage.run(state)}")
             elif task == "report":
-                sections.append(f"[报告分析]\n{self.report.run(state)}")
+                sections.append(f"[{self._section_title(task)}]\n{self.report.run(state)}")
             elif task == "medication":
-                sections.append(f"[用药建议]\n{self.medication.run(state)}")
+                sections.append(f"[{self._section_title(task)}]\n{self.medication.run(state)}")
             elif task == "rag_summary":
                 docs = self.rag.retrieve(user_text, top_k=2)
                 state.evidence = [{"source": d.source, "chunk": d.chunk} for d in docs]
                 evidence_text = "; ".join(f"{d.source}: {d.chunk}" for d in docs)
-                sections.append(f"[知识依据]\n{evidence_text}")
+                sections.append(f"[{self._section_title(task)}]\n{evidence_text}")
 
         draft = "\n".join(sections)
         if self.config.require_citations and state.evidence:

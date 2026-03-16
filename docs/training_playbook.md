@@ -186,3 +186,4 @@ python scripts/run_patient_sim_benchmark.py --scenarios data/sim_patient_cases.j
 ## 补充文档
 
 - [Huatuo 系列模型调研](./huatuo_series_research_zh.md)
+- [基模选择决策](./base_model_choice_zh.md)

@@ -4,7 +4,8 @@ from medagent.services.tools import ReportParsingTool
 
 
 class ReportAgent(BaseAgent):
-    name = "report"
+    task_name = "report"
+    display_name = "CangGong-Report"
 
     def __init__(self) -> None:
         self.report_tool = ReportParsingTool()

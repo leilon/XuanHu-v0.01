@@ -4,7 +4,8 @@ from medagent.services.clinical_pathway import build_first_visit_prompt, build_i
 
 
 class IntakeAgent(BaseAgent):
-    name = "intake"
+    task_name = "intake"
+    display_name = "BianQue-Intake"
 
     def run(self, state: OrchestratorState) -> str:
         plan = build_intake_plan(state)

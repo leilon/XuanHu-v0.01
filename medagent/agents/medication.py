@@ -4,7 +4,8 @@ from medagent.services.tools import DrugInteractionTool
 
 
 class MedicationAgent(BaseAgent):
-    name = "medication"
+    task_name = "medication"
+    display_name = "ShenNong-Medication"
 
     def __init__(self) -> None:
         self.drug_tool = DrugInteractionTool()

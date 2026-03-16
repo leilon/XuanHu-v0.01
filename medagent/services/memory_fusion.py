@@ -84,4 +84,4 @@ class MemoryFusionEngine:
         if ctx.episodes:
             memory_hint.append("已参考既往同类就诊记录")
         hint = "；".join(memory_hint) if memory_hint else "当前回答主要基于本轮对话"
-        return f"{draft}\n[记忆融合] {hint}，如症状持续或加重请尽快线下复诊。"
+        return f"{draft}\n[SiMiao-Memory] {hint}，如症状持续或加重请尽快线下复诊。"

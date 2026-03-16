@@ -1,2 +1,1 @@
-"""MedAgent package."""
-
+"""QingNang-ClinicOS package."""
