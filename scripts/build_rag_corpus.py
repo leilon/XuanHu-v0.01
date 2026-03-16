@@ -127,38 +127,6 @@ def _yield_medlineplus_topics(root: Path) -> list[dict[str, Any]]:
     return records
 
 
-def _yield_lab_tests(root: Path) -> list[dict[str, Any]]:
-    BeautifulSoup = _require_bs4()
-    records: list[dict[str, Any]] = []
-    for html_file in sorted((root / "medlineplus_lab_tests").glob("*.html")):
-        if html_file.name == "index.html":
-            continue
-        soup = _html_soup(BeautifulSoup, html_file.read_text(encoding="utf-8"))
-        title = _clean_text(soup.title.get_text(" ", strip=True) if soup.title else html_file.stem)
-        main = soup.find("main") or soup.find("article") or soup.body
-        if not main:
-            continue
-        paragraphs = [
-            _clean_text(node.get_text(" ", strip=True))
-            for node in main.find_all(["p", "li", "h2", "h3"])
-        ]
-        text = " ".join(item for item in paragraphs if item)
-        if not text:
-            continue
-        records.append(
-            {
-                "source_id": f"medlineplus_lab:{html_file.stem}",
-                "source_type": "medical_test",
-                "title": title,
-                "url": "",
-                "text": text,
-                "tags": ["lab_test", "diagnostics"],
-                "score": 0.72,
-            }
-        )
-    return records
-
-
 def _yield_openfda_labels(root: Path) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     for json_file in (root / "openfda_drug_labels").glob("*.json"):
@@ -446,6 +414,7 @@ def main() -> None:
     parser.add_argument("--out-file", default="/root/autodl-tmp/medagent/rag/chunks/medical_corpus.jsonl")
     parser.add_argument("--max-chars", type=int, default=420)
     parser.add_argument("--overlap", type=int, default=80)
+    parser.add_argument("--only-cn", action="store_true")
     args = parser.parse_args()
 
     raw_root = Path(args.raw_root)
@@ -453,10 +422,10 @@ def main() -> None:
     out_file.parent.mkdir(parents=True, exist_ok=True)
 
     records: list[dict[str, Any]] = []
-    records.extend(_yield_medlineplus_topics(raw_root))
-    records.extend(_yield_lab_tests(raw_root))
-    records.extend(_yield_openfda_labels(raw_root))
-    records.extend(_yield_seed_pages(raw_root))
+    if not args.only_cn:
+        records.extend(_yield_medlineplus_topics(raw_root))
+        records.extend(_yield_openfda_labels(raw_root))
+        records.extend(_yield_seed_pages(raw_root))
     records.extend(_yield_msd_manual_cn_pages(raw_root))
     records.extend(_yield_hf_cn_corpora(raw_root))
 

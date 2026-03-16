@@ -4,7 +4,7 @@ Download diagnosis-oriented medical sources for RAG.
 
 This step is CPU/network-bound and can be done before renting GPUs.
 It supports:
-1. Structured English/official sources for drug/lab grounding
+1. Structured official sources for symptom/drug grounding
 2. Chinese HF corpora via hf-mirror
 3. Chinese MSD Manuals professional pages via sitemap filtering
 """
@@ -14,13 +14,11 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-import re
 from urllib.parse import urljoin
 import xml.etree.ElementTree as ET
 
 
 MEDLINEPLUS_XML_PAGE = "https://medlineplus.gov/xml.html"
-MEDLINEPLUS_LAB_TESTS_INDEX = "https://medlineplus.gov/lab-tests/"
 OPENFDA_ENDPOINT = "https://api.fda.gov/drug/label.json"
 MSD_MANUALS_CN_SITEMAP = "https://www.msdmanuals.cn/sitemap.xml"
 
@@ -113,24 +111,6 @@ def _download_medlineplus_xml(root: Path, requests, BeautifulSoup) -> None:
     archive_path = target_dir / Path(xml_link).name
     archive_path.write_bytes(payload.content)
     (target_dir / "source_url.txt").write_text(xml_link, encoding="utf-8")
-
-
-def _download_lab_tests(root: Path, requests, max_pages: int) -> None:
-    response = requests.get(MEDLINEPLUS_LAB_TESTS_INDEX, timeout=60)
-    response.raise_for_status()
-    target_dir = root / "medlineplus_lab_tests"
-    target_dir.mkdir(parents=True, exist_ok=True)
-    (target_dir / "index.html").write_text(response.text, encoding="utf-8")
-
-    links = [
-        urljoin(MEDLINEPLUS_LAB_TESTS_INDEX, href)
-        for href in sorted(set(re.findall(r"/lab-tests/[a-z0-9\\-]+/", response.text)))
-    ]
-    for idx, link in enumerate(links[:max_pages]):
-        page = requests.get(link, timeout=60)
-        page.raise_for_status()
-        slug = link.rstrip("/").split("/")[-1]
-        (target_dir / f"{idx:04d}_{slug}.html").write_text(page.text, encoding="utf-8")
 
 
 def _download_openfda_labels(root: Path, requests, limit: int) -> None:
@@ -267,7 +247,6 @@ def _download_hf_corpora(root: Path, snapshot_download, manifest_path: Path, end
 def main() -> None:
     parser = argparse.ArgumentParser(description="Download RAG sources for QingNang-ClinicOS")
     parser.add_argument("--root", default="/root/autodl-tmp/medagent/datasets/rag_raw")
-    parser.add_argument("--max-lab-tests", type=int, default=200)
     parser.add_argument("--drug-limit", type=int, default=10)
     parser.add_argument("--seed-manifest", default="configs/rag_seed_manifest.json")
     parser.add_argument("--with-cn-hf", action="store_true")
@@ -275,18 +254,19 @@ def main() -> None:
     parser.add_argument("--hf-endpoint", default="https://hf-mirror.com")
     parser.add_argument("--with-msd-cn", action="store_true")
     parser.add_argument("--msd-max-pages", type=int, default=1200)
+    parser.add_argument("--only-cn", action="store_true")
     args = parser.parse_args()
 
     requests, BeautifulSoup, snapshot_download = _require_deps()
     root = Path(args.root)
     root.mkdir(parents=True, exist_ok=True)
 
-    _download_medlineplus_xml(root, requests, BeautifulSoup)
-    _download_lab_tests(root, requests, args.max_lab_tests)
-    _download_openfda_labels(root, requests, args.drug_limit)
+    if not args.only_cn:
+        _download_medlineplus_xml(root, requests, BeautifulSoup)
+        _download_openfda_labels(root, requests, args.drug_limit)
 
     manifest_path = Path(args.seed_manifest)
-    if manifest_path.exists():
+    if manifest_path.exists() and not args.only_cn:
         _download_seed_pages(root, requests, manifest_path)
 
     if args.with_cn_hf:

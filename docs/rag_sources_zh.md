@@ -42,14 +42,17 @@
 这一层继续保留：
 
 - `MedlinePlus Health Topics`
-- `MedlinePlus Lab Tests`
 - `openFDA Drug Labels`
 
 用途：
 
 - 症状与疾病解释
-- 初步检查和检验指标解释
 - 用药禁忌和药物安全
+
+补充说明：
+
+- `MedlinePlus Lab Tests` 已经从当前项目的 RAG 方案里移除
+- 原因不是版权，而是我们不喜欢它的 html 页面结构，也不想再维护这条解析链
 
 ### 3.2 中文大体量资料
 
@@ -148,6 +151,7 @@
 ```bash
 python scripts/download_rag_sources.py \
   --root /root/autodl-tmp/medagent/datasets/rag_raw \
+  --only-cn \
   --with-cn-hf \
   --with-msd-cn \
   --hf-manifest configs/cn_rag_hf_manifest.json \
@@ -160,6 +164,7 @@ python scripts/download_rag_sources.py \
 ```bash
 python scripts/build_rag_corpus.py \
   --raw-root /root/autodl-tmp/medagent/datasets/rag_raw \
+  --only-cn \
   --out-file /root/autodl-tmp/medagent/rag/chunks/medical_corpus.jsonl
 ```
 
@@ -174,7 +179,6 @@ python scripts/build_rag_corpus.py \
 ## 9. 参考来源
 
 - [MedlinePlus XML](https://medlineplus.gov/xml.html)
-- [MedlinePlus Lab Tests](https://medlineplus.gov/lab-tests/)
 - [openFDA Drug Label API](https://open.fda.gov/apis/drug/label/)
 - [FreedomIntelligence/huatuo_encyclopedia_qa](https://huggingface.co/datasets/FreedomIntelligence/huatuo_encyclopedia_qa)
 - [FreedomIntelligence/huatuo_knowledge_graph_qa](https://huggingface.co/datasets/FreedomIntelligence/huatuo_knowledge_graph_qa)
