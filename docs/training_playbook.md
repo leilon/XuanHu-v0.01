@@ -132,6 +132,7 @@ Final files produced:
 See also:
 - `docs/agentic_rl_synthesis.md`
 - `docs/agentic_rl_synthesis_zh.md`
+- `docs/agentic_rl_dataset_survey_zh.md`
 
 ## 6) Agentic-RL Training Stage
 

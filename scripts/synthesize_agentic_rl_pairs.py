@@ -54,6 +54,9 @@ def _load_json_response(text: str) -> dict[str, Any]:
 
 
 class OpenAICompatClient:
+    # Minimal OpenAI-compatible wrapper so we can swap providers
+    # (OpenAI, Doubao-compatible gateway, local proxy) without
+    # changing the synthesis pipeline logic below.
     def __init__(self, model: str, api_key_env: str, base_url: str = "") -> None:
         self.model = model
         self.api_key_env = api_key_env
@@ -102,6 +105,8 @@ class OpenAICompatClient:
 
 
 def _build_fallback_case(prompt: str) -> dict[str, Any]:
+    # Dry-run mode still needs a realistic hidden case packet so we can
+    # test the downstream data flow without external API calls.
     red_flags: list[str] = []
     likely_tools = ["rag_guideline", "drug_knowledge"]
     if any(k in prompt for k in ("胸痛", "呼吸困难", "抽搐", "便血")):
@@ -134,6 +139,9 @@ def build_case_packet(
     reference_answer: str = "",
     dry_run: bool = False,
 ) -> dict[str, Any]:
+    # Step 1: convert a raw user query into a hidden structured case.
+    # This is the key difference from naive "rewrite the answer" data
+    # generation: later stages optimize over the same latent case state.
     if dry_run or not client.available:
         return _build_fallback_case(prompt)
 
@@ -205,6 +213,8 @@ def generate_expert_trajectory(
     case: dict[str, Any],
     dry_run: bool = False,
 ) -> dict[str, Any]:
+    # Step 2: synthesize the preferred trajectory. We want a multi-turn,
+    # tool-aware consultation trace, not just a polished final response.
     if dry_run or not client.available:
         return _fallback_expert_trajectory(case)
 
@@ -259,6 +269,9 @@ def generate_negative_trajectory(
     failure_mode: str,
     dry_run: bool = False,
 ) -> dict[str, Any]:
+    # Step 3: synthesize a plausible but worse trajectory. The failure must
+    # be specific (missed history, no grounding, etc.), otherwise DPO pairs
+    # become too easy and teach little about agent behavior.
     if dry_run or not client.available:
         return _fallback_negative_trajectory(case, expert, failure_mode)
 
@@ -294,6 +307,8 @@ Requirements:
 
 
 def _render_trajectory(case: dict[str, Any], traj: dict[str, Any]) -> str:
+    # Flatten structured trajectories into a DPO-friendly text format while
+    # preserving turn roles, tool calls, and the final answer.
     lines = [
         f"[opening] {case.get('opening', '').strip()}",
         f"[difficulty] {case.get('difficulty', 'unknown')}",
@@ -311,6 +326,8 @@ def _render_trajectory(case: dict[str, Any], traj: dict[str, Any]) -> str:
 
 
 def _score_text(case: dict[str, Any], text: str) -> dict[str, float]:
+    # Dry-run heuristic judge. The real run should use a stronger judge model,
+    # but this gives us a deterministic fallback for local testing.
     score = {
         "safety": 0.0,
         "coverage": 0.0,
@@ -349,6 +366,9 @@ def judge_pair(
     rejected_text: str,
     dry_run: bool = False,
 ) -> dict[str, Any]:
+    # Step 4: only keep pairs with a meaningful preference signal.
+    # Without a judge stage, synthesis pipelines keep too many noisy or
+    # near-tie examples that make preference training unstable.
     if dry_run or not client.available:
         chosen_score = _score_text(case, chosen_text)
         rejected_score = _score_text(case, rejected_text)
@@ -444,6 +464,8 @@ def main() -> None:
                 chosen_text, rejected_text = rejected_text, chosen_text
                 chosen_score, rejected_score = rejected_score, chosen_score
 
+            # Margin filtering drops ambiguous pairs so the retained data is
+            # sharper for DPO/ORPO-style optimization on smaller 7B models.
             if chosen_score - rejected_score < args.min_margin:
                 continue
 

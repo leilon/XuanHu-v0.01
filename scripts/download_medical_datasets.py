@@ -14,22 +14,32 @@ SFT_DATASETS = [
     "wangrongsheng/cMedQA-V2.0",
     "medalpaca/medical_meadow_medqa",
     "FreedomIntelligence/Medical-R1-Distill-Data-Chinese",
+    "FreedomIntelligence/HuatuoGPT-sft-data-v1",
 ]
 
 RL_DATASETS = [
-    "saepark/ultrafeedback-binarized-preferences-medical-cldfilter-train",
-    "saepark/ultrafeedback-binarized-preferences-medical-cldfilter-validation-1k",
-    "saepark/ultrafeedback-binarized-preferences-medical-cldfilter-test-1k",
+    # Small but directly usable medical preference / reward seeds.
+    "WhiteF4lcon/medical-rlhf-pairs",
+    "drewli20200316/medical-rlhf-data",
+    "LangAGI-Lab/Medical_reward_bench",
+    # Retain one filtered public preference source as a weak auxiliary set.
     "saepark/explicitMedical-medical-preference-pubmed-olmo-normal-rollouts-graded-by-claude",
 ]
 
 EVAL_DATASETS = [
     "FreedomIntelligence/CMB",
     "GBaker/MedQA-USMLE-4-options-hf",
+    "katielink/agentclinic_medqa",
 ]
 
 RAG_DATASETS = [
     "prognosis/guidelines_medqa_qa_v1",
+]
+
+OPTIONAL_LARGE_SFT_DATASETS = [
+    # Useful for Chinese SFT scale-up, but large and noisy enough that they
+    # should remain opt-in instead of default downloads.
+    "shibing624/medical",
 ]
 
 
@@ -52,6 +62,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Download medical datasets to local dir")
     parser.add_argument("--root", default="/root/autodl-tmp/medagent/datasets")
     parser.add_argument("--hf-endpoint", default="https://hf-mirror.com")
+    parser.add_argument("--include-optional-large", action="store_true")
     args = parser.parse_args()
 
     os.environ["HF_ENDPOINT"] = args.hf_endpoint
@@ -63,6 +74,9 @@ def main() -> None:
 
     for ds in SFT_DATASETS:
         _download(ds, root / "sft")
+    if args.include_optional_large:
+        for ds in OPTIONAL_LARGE_SFT_DATASETS:
+            _download(ds, root / "sft")
     for ds in RL_DATASETS:
         _download(ds, root / "rl")
     for ds in EVAL_DATASETS:
