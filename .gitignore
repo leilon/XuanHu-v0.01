@@ -7,3 +7,4 @@ dist/
 *.egg-info/
 logs/
 adapters/
+runtime_assets/
