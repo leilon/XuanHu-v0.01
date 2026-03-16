@@ -83,10 +83,19 @@ def _require_deps():
     return requests, BeautifulSoup, snapshot_download
 
 
+def _html_soup(BeautifulSoup, text: str):
+    for parser in ("lxml", "html.parser"):
+        try:
+            return BeautifulSoup(text, parser)
+        except Exception:
+            continue
+    raise RuntimeError("Could not initialize an HTML parser for BeautifulSoup.")
+
+
 def _download_medlineplus_xml(root: Path, requests, BeautifulSoup) -> None:
     response = requests.get(MEDLINEPLUS_XML_PAGE, timeout=60)
     response.raise_for_status()
-    soup = BeautifulSoup(response.text, "lxml")
+    soup = _html_soup(BeautifulSoup, response.text)
     xml_link = None
     for anchor in soup.find_all("a", href=True):
         text = anchor.get_text(" ", strip=True).lower()

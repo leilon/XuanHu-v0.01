@@ -29,6 +29,15 @@ def _require_bs4():
     return BeautifulSoup
 
 
+def _html_soup(BeautifulSoup, text: str):
+    for parser in ("lxml", "html.parser"):
+        try:
+            return BeautifulSoup(text, parser)
+        except Exception:
+            continue
+    raise RuntimeError("Could not initialize an HTML parser for BeautifulSoup.")
+
+
 def _clean_text(text: str) -> str:
     text = re.sub(r"\s+", " ", text)
     return text.strip()
@@ -124,7 +133,7 @@ def _yield_lab_tests(root: Path) -> list[dict[str, Any]]:
     for html_file in sorted((root / "medlineplus_lab_tests").glob("*.html")):
         if html_file.name == "index.html":
             continue
-        soup = BeautifulSoup(html_file.read_text(encoding="utf-8"), "lxml")
+        soup = _html_soup(BeautifulSoup, html_file.read_text(encoding="utf-8"))
         title = _clean_text(soup.title.get_text(" ", strip=True) if soup.title else html_file.stem)
         main = soup.find("main") or soup.find("article") or soup.body
         if not main:
@@ -198,7 +207,7 @@ def _yield_seed_pages(root: Path) -> list[dict[str, Any]]:
         html_file = seed_root / f"{meta_file.stem[:-5]}.html"
         if not html_file.exists():
             continue
-        soup = BeautifulSoup(html_file.read_text(encoding="utf-8", errors="ignore"), "lxml")
+        soup = _html_soup(BeautifulSoup, html_file.read_text(encoding="utf-8", errors="ignore"))
         main = (
             soup.find("main")
             or soup.find("article")
@@ -241,7 +250,7 @@ def _yield_msd_manual_cn_pages(root: Path) -> list[dict[str, Any]]:
         html_file = page_root / f"{meta_file.stem[:-5]}.html"
         if not html_file.exists():
             continue
-        soup = BeautifulSoup(html_file.read_text(encoding="utf-8", errors="ignore"), "lxml")
+        soup = _html_soup(BeautifulSoup, html_file.read_text(encoding="utf-8", errors="ignore"))
         main = (
             soup.find("main")
             or soup.find("article")
