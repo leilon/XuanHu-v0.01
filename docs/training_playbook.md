@@ -8,7 +8,7 @@
 
 ### 视觉模型
 
-- `Qwen/Qwen2.5-VL-7B-Instruct`
+- `FreedomIntelligence/HuatuoGPT-Vision-7B-Qwen2.5VL`
 
 选择原因：
 
@@ -63,6 +63,12 @@ bash scripts/autodl_prepare_workspace.sh /root/autodl-tmp/medagent
 ```json
 {"input":"...", "output":"..."}
 ```
+
+其中首程问诊这一桶要特别注意：
+
+- 不要直接用长篇解释型答案去训 `BianQue-Intake`
+- 更适合训成“一问一答”的追问风格
+- 长解释样本留给后续患者解释 / 科普 / 报告解读 adapter
 
 ## 4. QLoRA 阶段
 

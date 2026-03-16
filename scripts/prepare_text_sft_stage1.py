@@ -10,6 +10,7 @@ import hashlib
 import json
 import random
 from pathlib import Path
+import re
 import sys
 from typing import Any
 
@@ -34,6 +35,33 @@ SOURCE_LIMITS = {
     "shibing624__medical": 120_000,
 }
 
+FOLLOWUP_RULES = [
+    (
+        ("胸痛", "胸闷", "胸口堵", "堵得慌", "喘", "气短", "呼吸困难"),
+        "先补充几项关键信息：这种不适从什么时候开始？活动后会不会更明显？有没有胸痛、明显气短、出冷汗或头晕？",
+    ),
+    (
+        ("发热", "发烧", "咳嗽", "咳痰", "咽痛", "鼻塞", "流涕"),
+        "先告诉我症状从什么时候开始，体温大概最高到多少？咳嗽是干咳还是有痰？有没有胸闷、气促或接触过发热患者？",
+    ),
+    (
+        ("腹痛", "肚子痛", "呕吐", "恶心", "腹泻"),
+        "先告诉我腹痛具体在什么位置，是一直痛还是一阵一阵痛？有没有发热、腹泻、黑便或便血？",
+    ),
+    (
+        ("头痛", "头晕", "意识不清", "抽搐", "无力"),
+        "先补充一下：头痛或头晕是突然出现还是慢慢加重？有没有发热、呕吐、说话不清或一侧肢体无力？",
+    ),
+    (
+        ("尿频", "尿急", "尿痛", "血尿", "下腹痛", "阴道流血"),
+        "先说一下这些症状持续多久了？有没有发热、腰痛、分泌物异常或排尿疼痛？如果是育龄女性，还需要确认月经和妊娠可能。",
+    ),
+    (
+        ("皮疹", "过敏", "瘙痒", "红疹"),
+        "先补充几点：皮疹是什么时候出现的，分布在哪些部位？有没有瘙痒、呼吸不适，或者接触过新食物、新药物？",
+    ),
+]
+
 
 def _quality_ok(question: str, answer: str) -> bool:
     q = question.strip()
@@ -45,6 +73,23 @@ def _quality_ok(question: str, answer: str) -> bool:
     if q == a:
         return False
     return True
+
+
+def _looks_like_short_followup(answer: str, max_chars: int) -> bool:
+    text = answer.strip()
+    if len(text) > max_chars:
+        return False
+    if "1." in text or "1：" in text or "1、" in text:
+        return False
+    return any(marker in text for marker in ("？", "请补充", "请告诉我", "先补充", "有没有", "从什么时候"))
+
+
+def _generate_short_followup(question: str) -> str:
+    cleaned = re.sub(r"\s+", " ", question).strip()
+    for keywords, template in FOLLOWUP_RULES:
+        if any(keyword in cleaned for keyword in keywords):
+            return template
+    return "先补充几点关键信息：这个不适从什么时候开始？是在加重还是缓解？有没有发热、疼痛、呼吸困难或出血这类危险信号？"
 
 
 def _extract_pair_from_record(record: dict[str, Any]) -> tuple[str, str] | None:
@@ -142,6 +187,12 @@ def main() -> None:
     parser.add_argument("--valid-out", default="/root/autodl-tmp/medagent/datasets/sft/valid_stage1_text.jsonl")
     parser.add_argument("--valid-ratio", type=float, default=0.02)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--max-output-chars", type=int, default=120)
+    parser.add_argument(
+        "--preserve-original-output",
+        action="store_true",
+        help="Keep original answers even when they are long explanatory paragraphs.",
+    )
     args = parser.parse_args()
 
     sft_root = Path(args.sft_root)
@@ -161,6 +212,12 @@ def main() -> None:
             user_text, assistant_text = pair
             if not _quality_ok(user_text, assistant_text):
                 continue
+            output_text = assistant_text
+            style = "source_answer"
+            if not args.preserve_original_output:
+                if not _looks_like_short_followup(assistant_text, args.max_output_chars):
+                    output_text = _generate_short_followup(user_text)
+                    style = "doctor_short_turn"
             fingerprint = hashlib.md5(f"{user_text}\n{assistant_text}".encode("utf-8")).hexdigest()
             if fingerprint in seen:
                 continue
@@ -168,9 +225,10 @@ def main() -> None:
             rows.append(
                 {
                     "input": user_text,
-                    "output": assistant_text,
+                    "output": output_text,
                     "bucket": _bucket_for(file_path),
                     "source": file_path.name,
+                    "style": style,
                 }
             )
             source_counts[source_key] = source_counts.get(source_key, 0) + 1

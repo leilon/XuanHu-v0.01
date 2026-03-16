@@ -59,6 +59,13 @@
 - [train_text_sft_stage1.py](../scripts/train_text_sft_stage1.py)
 - [text_sft_stage1.sample.jsonl](../data/text_sft_stage1.sample.jsonl)
 
+注意：
+
+- `text_sft_stage1.sample.jsonl` 只是我手写的骨架示例，不是直接从公开数据集原样抽出来的
+- 第一阶段 `BianQue` 文本 SFT 不应该吃长篇解释答案
+- `prepare_text_sft_stage1.py` 现在会默认把长篇说明式回答压成“首轮追问式短回答”
+- 长解释型医疗 QA 更适合放到后续“患者解释 / 科普 / 报告说明”类 adapter
+
 推荐先生成训练文件：
 
 ```bash
