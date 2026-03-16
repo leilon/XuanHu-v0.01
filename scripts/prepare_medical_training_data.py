@@ -6,6 +6,7 @@ Prepare unified SFT and Agentic-RL JSONL files from downloaded datasets.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 from typing import Any
@@ -13,6 +14,15 @@ import zipfile
 
 from datasets import load_dataset
 import random
+
+
+SOURCE_LIMITS = {
+    "HuatuoGPT_sft_data_v1.jsonl": 220_000,
+    "train_zh_0.json": 320_000,
+    "cMedQA2.json": 120_000,
+    "medical_meadow_medqa.json": 80_000,
+    "medical_r1_distill_sft_Chinese.json": 120_000,
+}
 
 
 def _read_json(path: Path) -> Any:
@@ -33,6 +43,18 @@ def _iter_dialogue_pairs(obj: Any) -> list[tuple[str, str]]:
         for item in obj:
             pairs.extend(_iter_dialogue_pairs(item))
     return pairs
+
+
+def _quality_ok(question: str, answer: str) -> bool:
+    q = question.strip()
+    a = answer.strip()
+    if len(q) < 5 or len(a) < 5:
+        return False
+    if len(q) > 1200 or len(a) > 4000:
+        return False
+    if q == a:
+        return False
+    return True
 
 
 def _extract_pair_from_record(record: dict[str, Any]) -> tuple[str, str] | None:
@@ -78,9 +100,8 @@ def _extract_pair_from_record(record: dict[str, Any]) -> tuple[str, str] | None:
     return None
 
 
-def _parse_json_or_jsonl(path: Path) -> list[dict]:
+def _iter_json_or_jsonl(path: Path):
     # Fast path: line-wise JSONL (also handles very large pseudo-jsonl files).
-    records: list[dict] = []
     line_success = 0
     with open(path, "r", encoding="utf-8", errors="ignore") as f:
         for idx, line in enumerate(f):
@@ -92,58 +113,102 @@ def _parse_json_or_jsonl(path: Path) -> list[dict]:
             try:
                 obj = json.loads(line)
                 if isinstance(obj, dict):
-                    records.append(obj)
                     line_success += 1
+                    yield obj
             except Exception:
                 continue
             if idx > 500 and line_success == 0:
                 break
 
     if line_success > 0:
-        return records
+        return
 
     # Fallback: small JSON file load.
     if path.stat().st_size <= 300 * 1024 * 1024:
         try:
             obj = _read_json(path)
             if isinstance(obj, list):
-                return [x for x in obj if isinstance(x, dict)]
+                for x in obj:
+                    if isinstance(x, dict):
+                        yield x
+                return
             if isinstance(obj, dict):
-                return [obj]
+                yield obj
+                return
         except Exception:
-            return []
-    return []
+            return
+    return
 
 
-def build_sft(sft_root: Path, out_file: Path) -> int:
+def _source_limit(path: Path) -> int:
+    text = str(path)
+    for key, value in SOURCE_LIMITS.items():
+        if key in text:
+            return value
+    return 100_000
+
+
+def build_sft(sft_root: Path, out_file: Path, sft_cap: int) -> int:
     rows: list[dict[str, str]] = []
+    source_counts: dict[str, int] = {}
+    seen: set[str] = set()
+
     for json_file in list(sft_root.rglob("*.json")) + list(sft_root.rglob("*.jsonl")):
         try:
-            recs = _parse_json_or_jsonl(json_file)
-            for rec in recs:
+            source_key = str(json_file)
+            limit = _source_limit(json_file)
+            for rec in _iter_json_or_jsonl(json_file):
+                if source_counts.get(source_key, 0) >= limit:
+                    break
+                if len(rows) >= sft_cap:
+                    break
                 pair = _extract_pair_from_record(rec)
                 if pair:
                     q, a = pair
-                    if q and a and len(q) > 2 and len(a) > 2:
+                    if _quality_ok(q, a):
+                        fingerprint = hashlib.md5(f"{q}\n{a}".encode("utf-8")).hexdigest()
+                        if fingerprint in seen:
+                            continue
+                        seen.add(fingerprint)
                         rows.append({"input": q, "output": a})
+                        source_counts[source_key] = source_counts.get(source_key, 0) + 1
         except Exception:
             continue
+        if len(rows) >= sft_cap:
+            break
 
     for zf in sft_root.rglob("*.zip"):
         try:
+            source_key = str(zf)
+            limit = _source_limit(zf)
             with zipfile.ZipFile(zf, "r") as z:
                 json_names = [n for n in z.namelist() if n.endswith(".json")]
                 for name in json_names:
                     try:
+                        if source_counts.get(source_key, 0) >= limit:
+                            break
+                        if len(rows) >= sft_cap:
+                            break
                         with z.open(name) as fp:
                             data = json.loads(fp.read().decode("utf-8", errors="ignore"))
                         for q, a in _iter_dialogue_pairs(data):
-                            if q and a and len(q) > 2 and len(a) > 2:
+                            if source_counts.get(source_key, 0) >= limit:
+                                break
+                            if len(rows) >= sft_cap:
+                                break
+                            if _quality_ok(q, a):
+                                fingerprint = hashlib.md5(f"{q}\n{a}".encode("utf-8")).hexdigest()
+                                if fingerprint in seen:
+                                    continue
+                                seen.add(fingerprint)
                                 rows.append({"input": q, "output": a})
+                                source_counts[source_key] = source_counts.get(source_key, 0) + 1
                     except Exception:
                         continue
         except Exception:
             continue
+        if len(rows) >= sft_cap:
+            break
 
     out_file.parent.mkdir(parents=True, exist_ok=True)
     with open(out_file, "w", encoding="utf-8") as f:
@@ -254,10 +319,11 @@ def main() -> None:
     parser.add_argument("--root", default="/root/autodl-tmp/medagent/datasets")
     parser.add_argument("--sft-out", default="/root/autodl-tmp/medagent/datasets/sft/train_sft_v1.jsonl")
     parser.add_argument("--rl-out", default="/root/autodl-tmp/medagent/datasets/rl/agentic_pairs_v2.jsonl")
+    parser.add_argument("--sft-cap", type=int, default=700000)
     args = parser.parse_args()
 
     root = Path(args.root)
-    sft_count = build_sft(root / "sft", Path(args.sft_out))
+    sft_count = build_sft(root / "sft", Path(args.sft_out), args.sft_cap)
     rl_count = build_rl(root / "rl", Path(args.rl_out))
     print(f"[ok] SFT rows: {sft_count}")
     print(f"[ok] RL rows: {rl_count}")
