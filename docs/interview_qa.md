@@ -1,59 +1,85 @@
-# Interview Q&A (Medical Multi-Agent + 7B)
+# 面试问答准备
 
-## Q1: Why choose 7B instead of larger models?
-A:
-- Cost/performance tradeoff for internship-scale infra
-- QLoRA lets us iterate quickly and do continual learning
-- For tool-augmented tasks (RAG + structured tools), 7B can meet product targets with good engineering
+## Q1：为什么选择 7B，而不是更大的模型？
 
-## Q2: How do you implement long-term memory with QLoRA?
-A:
-- Split memory into two layers:
-  - External memory: profile + episodic memory in store
-  - Parametric memory: task adapters trained via QLoRA
-- At inference, memory fusion injects retrieved profile/episodes into prompt and selects task adapter from Adapter Bank
+答：
 
-## Q3: Why multi-agent architecture?
-A:
-- Medical workflow naturally decomposes into intake, triage, medication, report interpretation
-- Specialized agents improve controllability and debugging
-- Orchestrator enables dynamic planning and tool-call routing
+- 7B 更适合实习项目阶段的算力和迭代节奏
+- QLoRA 可以显著降低训练成本，方便做持续学习
+- 对于医疗 Agent 这类“工具调用 + RAG + 结构化流程”的任务，模型规模不是唯一决定因素，好的数据和流程设计同样重要
+- 我们把更强 API 模型用在 teacher、judge 和 patient simulator 上，把本地 7B 用作主力 agent，这样更符合真实工程落地
 
-## Q4: How do you avoid hallucinations in medical responses?
-A:
-- RAG with citation-required generation
-- Safety guardrails for emergency signals
-- Benchmark with grounding and safety recall metrics
-- Preference optimization on agentic trajectories
+## Q2：为什么要做多 Agent，而不是单模型直接回答？
 
-## Q5: What is your Agentic RL strategy?
-A:
-- Build preference pairs from benchmark + real dialogue logs
-- Optimize policy adapter with DPO as practical RLHF stage
-- Reward proxies:
-  - task completion
-  - safety token recall
-  - grounding citation quality
-  - tool-call efficiency
+答：
 
-## Q6: How is multimodal handled?
-A:
-- Separate report/image specialist branch based on VL-7B
-- Extract report findings, summarize abnormalities, and route to triage/medication modules
-- Keep output structured with explicit risk note and next-step recommendation
+- 医疗流程天然可以拆成病情采集、分诊、报告解读、问药几个子任务
+- 拆分后更容易控制、安全兜底和定位错误
+- Orchestrator 可以做动态路由，例如先问诊、再分诊、再决定是否解析报告
 
-## Q7: How do you evaluate before deployment?
-A:
-- Horizontal benchmark vs baseline single-agent
-- Case-level scoring:
-  - medical correctness
-  - safety
-  - grounding
-- Regression checks across model and adapter versions
+## Q3：长期记忆是怎么设计的？
 
-## Q8: If GPU budget is limited, what do you do first?
-A:
-- Stage 1: 1xA100 for SFT + benchmark iteration
-- Stage 2: add RL preference tuning after data quality stabilizes
-- Stage 3: scale to 2-4 GPUs only when throughput becomes bottleneck
+答：
 
+- 我把长期记忆分成外部记忆和参数记忆两层
+- 外部记忆存结构化 profile，比如慢病、过敏史、长期用药、既往评估
+- 参数记忆通过 QLoRA adapter 学习不同任务的行为模式
+- 推理时会把长期记忆和 episodic memory 融合到 prompt 中，再按任务选择 adapter
+
+## Q4：你为什么强调首程问诊逻辑？
+
+答：
+
+- 医疗 Agent 不是知识问答系统，它首先是一个“会不会问对问题”的系统
+- 如果首程问诊没问清楚，后面的分诊和用药建议都不可靠
+- 所以我把真实临床首程问诊流程做成基础模板：先问主诉和时间线，再问系统相关症状，再补一般病史和流行病史，最后给检查建议和分诊
+
+## Q5：你怎么处理特殊人群问题？
+
+答：
+
+- 问诊逻辑做了条件化
+- 男性不会优先被问怀孕
+- 育龄女性在腹痛、用药、影像检查等场景下才追问月经和妊娠可能
+- 老用户会优先读取既往病史和长期用药，不会每次从零开始问
+
+## Q6：你怎么降低医疗幻觉？
+
+答：
+
+- 用 RAG 强制引入指南和药品知识证据
+- 高风险场景由 Safety Guard 做额外兜底
+- benchmark 里单独看 grounding 和安全召回
+- Agentic-RL 阶段重点优化“先问再答、先查再答、危险信号先升级”这类行为
+
+## Q7：你的 Agentic-RL 数据怎么来？
+
+答：
+
+- 公开医疗 preference 数据可以做种子，但不够覆盖真实问诊流程
+- 主体数据由合成 pipeline 生成：先构造隐藏病例包，再生成专家轨迹和失败轨迹，最后用 judge 过滤
+- 失败轨迹不是乱答，而是模拟真实错误，比如漏问过敏史、漏掉危险信号、该查工具时没查
+
+## Q8：你怎么做评测？
+
+答：
+
+- 离线看医学基础能力和安全 benchmark
+- 在线接入 LLM API 扮演病人，检验多轮问诊质量
+- 重点看关键病史覆盖率、高风险症状召回率、工具调用成功率、长期记忆利用率
+
+## Q9：如果 GPU 预算有限，你会怎么排优先级？
+
+答：
+
+- 先用 1 张 A100 把 SFT、benchmark 和数据清洗跑通
+- 等数据质量稳定后再上 Agentic-RL
+- 只有在吞吐和训练时间成为瓶颈时，再扩到 2-4 张卡
+
+## Q10：这个项目最有亮点的地方是什么？
+
+答：
+
+- 不是单纯做一个医疗问答模型
+- 而是把真实首程问诊流程、长期记忆、RAG、工具调用和 Agentic-RL 串成了一个完整闭环
+- 这样既有算法亮点，也有工程和产品落地价值

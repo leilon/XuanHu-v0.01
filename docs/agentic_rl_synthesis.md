@@ -1,53 +1,11 @@
-# Agentic RL Synthesis
+# Agentic-RL 合成数据说明（中文入口）
 
-## Why the old script was not good enough
+这份文档现在作为中文入口使用。
 
-- It used the current local orchestrator as the "chosen" policy, so it could only reproduce the weaknesses already in the prototype.
-- It used a trivial generic string as the "rejected" policy, which makes the preference task unrealistically easy.
-- It did not synthesize multi-turn trajectories, tool calls, or safety failures.
-- It did not judge whether the pair had a meaningful quality gap.
+如果你要看完整中文版，请优先阅读：
 
-## Better synthesis recipe
+- `docs/agentic_rl_synthesis_zh.md`
 
-Use a stronger OpenAI-compatible teacher model to generate pairwise data in four stages:
+如果你要看英文备份版，请查看：
 
-1. Build a hidden case packet from a seed prompt.
-2. Generate an expert trajectory with follow-up questions, tool calls, and a grounded final answer.
-3. Generate a flawed but plausible trajectory for a specific failure mode.
-4. Judge the pair and only keep it if the quality margin is large enough.
-
-## Failure modes to synthesize
-
-- `premature_answer`
-- `missed_red_flag`
-- `no_tool_use`
-- `no_grounding`
-- `missed_history`
-
-These are much closer to the real mistakes we care about in a medical agent than generic weak responses.
-
-## Recommended data mix for 7B
-
-- 60%: high-quality SFT distilled trajectories
-- 25%: synthetic agentic preference pairs from the new pipeline
-- 15%: public reward / preference sets after manual filtering
-
-Public reward data that is still useful:
-
-- `shibing624/medical/reward/train.json`
-  - Chinese medical pairwise reward seed
-- `liyucheng/zhihu_rlhf_3k`
-  - Only use a filtered health subset, not the full set
-
-## Output format
-
-Each synthesized sample becomes:
-
-- `prompt`
-- `chosen`
-- `rejected`
-- `meta.case`
-- `meta.failure_mode`
-- `meta.judge`
-
-This format is directly usable for DPO-style fine-tuning.
+- `docs/en/agentic_rl_synthesis.md`

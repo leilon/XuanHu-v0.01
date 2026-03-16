@@ -1,39 +1,96 @@
-# Benchmark Plan (Medical Agent)
+# 医疗 Agent Benchmark 方案
 
-## 1) Offline Benchmarks
+## 1. 离线 benchmark
 
-- Chinese medical benchmark: `FreedomIntelligence/CMB`
-  - Use exam-style QA and clinical QA subsets.
-- English medical benchmark: `GBaker/MedQA-USMLE-4-options-hf`
-  - Use for cross-lingual sanity checks.
-- Project custom safety benchmark:
-  - emergency symptoms
-  - contraindication cases
-  - report interpretation corner cases
+推荐至少保留三类离线评测：
 
-## 2) Online Multi-turn Evaluation
+### 中文医疗 benchmark
 
-Use LLM API as patient simulator (recommended):
-- script: `scripts/run_patient_sim_benchmark.py`
-- simulator: `medagent/benchmark/patient_simulator.py`
-- scenarios: `data/sim_patient_cases.json`
+- `FreedomIntelligence/CMB`
 
-Why this is valuable:
-- static QA cannot test follow-up questioning quality
-- medical assistant quality depends on multi-turn data collection and safety escalation
+用途：
 
-## 3) Metrics
+- 看中文医学知识和临床问答基础能力
+- 适合做模型版本回归对比
 
-- Medical correctness score
-- Safety recall (high-risk symptom detection)
-- Grounding citation rate
-- Tool-call success rate
-- Multi-turn completion rate
+### 英文医学 benchmark
 
-## 4) Guardrails for Simulator Eval
+- `GBaker/MedQA-USMLE-4-options-hf`
 
-- Lock patient profile per scenario (avoid drift across turns)
-- Add random perturbations (missing info, ambiguous symptoms)
-- Keep deterministic seed runs for regression
-- Store full dialogue logs for error replay
+用途：
 
+- 做跨语言 sanity check
+- 用来确认模型没有因为中文微调而明显损伤基础医学常识
+
+### 项目自定义安全集
+
+必须自己补一套高风险病例：
+
+- 胸痛、呼吸困难、意识障碍等急症
+- 用药禁忌和过敏场景
+- 报告解读边角案例
+- 育龄女性用药 / 妊娠相关场景
+- 老用户带长期记忆的复诊场景
+
+## 2. 在线多轮评测
+
+静态 QA 不足以评估医疗 Agent，因为医疗质量很大程度取决于：
+
+- 会不会追问
+- 会不会补问关键病史
+- 会不会识别危险信号
+- 会不会适时升级到急诊或线下评估
+
+所以推荐接入 LLM API 扮演病人进行多轮评测：
+
+- 脚本：`scripts/run_patient_sim_benchmark.py`
+- 模拟器：`medagent/benchmark/patient_simulator.py`
+- 场景：`data/sim_patient_cases.json`
+
+## 3. 评测指标
+
+建议至少跟踪以下指标：
+
+- 医学正确性
+- 高风险症状召回率
+- 引用/grounding 覆盖率
+- 工具调用成功率
+- 多轮任务完成率
+- 平均轮数
+
+对于首程问诊项目，还应补充：
+
+- 关键病史追问覆盖率
+- 不合理追问率
+  - 例如男性先被问是否怀孕
+- 长期记忆命中率
+  - 老用户再次就诊时，是否利用既往病史
+
+## 4. 多轮模拟器的约束
+
+为了让评测稳定，病人模拟器需要满足：
+
+- 每个病例的人设固定
+- 每轮回答不要漂移
+- 可加入缺失信息、模糊表达、答非所问等扰动
+- 支持固定随机种子，方便回归复现
+- 必须保存完整对话日志，方便错误复盘
+
+## 5. 推荐的横向对比对象
+
+至少保留三条基线：
+
+- 单 Agent 直接回答
+- 多 Agent + RAG
+- 多 Agent + RAG + 长期记忆
+
+如果后面加了 RL，再增加：
+
+- SFT only
+- SFT + Agentic-RL
+
+## 6. 面试里怎么讲 benchmark
+
+一句话版本：
+
+“我把评测分成静态医学能力、多轮问诊流程能力和安全性三层，其中多轮层会接入 LLM API 作为病人模拟器，用来检验模型是否会问对问题、是否会利用长期记忆，以及是否能在高风险场景及时升级分诊。”
