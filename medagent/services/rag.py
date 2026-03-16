@@ -21,7 +21,7 @@ class RetrievedDoc:
 class RAGService:
     def __init__(self, chunk_file: str = "rag/chunks/medical_corpus.jsonl") -> None:
         self.expander = QueryExpander()
-        self.chunk_file = Path(chunk_file)
+        self.chunk_file = self._resolve_chunk_file(chunk_file)
         self.docs = [
             RetrievedDoc(
                 source="guide:fever-home-care",
@@ -43,6 +43,20 @@ class RAGService:
             loaded = self._load_chunk_file(self.chunk_file)
             if loaded:
                 self.docs = loaded
+
+    def _resolve_chunk_file(self, chunk_file: str) -> Path:
+        candidates = [
+            Path(chunk_file),
+            Path("runtime_assets/rag/chunks/medical_corpus.jsonl"),
+            Path("/root/autodl-tmp/medagent/rag/chunks/medical_corpus.jsonl"),
+        ]
+        env_path = Path(Path.cwd(), "")
+        if env_path:
+            candidates.append(Path.cwd() / "rag/chunks/medical_corpus.jsonl")
+        for candidate in candidates:
+            if candidate.exists():
+                return candidate
+        return Path(chunk_file)
 
     def _load_chunk_file(self, path: Path) -> list[RetrievedDoc]:
         docs: list[RetrievedDoc] = []

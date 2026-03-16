@@ -10,9 +10,10 @@
 
 ## 2. 模型与运行环境
 
-- 继续完成 `Qwen2.5-VL-7B-Instruct` 下载
-  - 当前文本 7B 已完整
-  - 当前 VL 7B 只完成部分分片下载
+- 下载并整理当前真正要用的基模
+  - 当前文本主干：`Qwen2.5-7B-Instruct`
+  - 当前视觉主干：`HuatuoGPT-Vision-7B-Qwen2.5VL`
+- 清理不再使用的旧视觉基模和无效缓存
 - 确认 AutoDL 实例切换到有 GPU 的容器后再启动训练
 - 增加模型状态检查脚本和下载恢复逻辑
 
@@ -20,6 +21,9 @@
 
 - 重构 `clinical_pathway.py`
   - 从关键词规则升级为“症状分类 + 问诊树 + 红旗规则 + 分诊规则”四层结构
+- 当前 `IntentRouter` 仍然是规则型占位实现
+  - 后续要升级为“规则 + 小模型 / API judge”联合路由
+  - 需要加入更多真实用户表达、模糊主诉、知识问答与首程问诊的边界判别
 - 所有首程病例与训练样本都要从“信息不完整的真实主诉”开始
   - 不能默认用户一上来就提供体温、血压、症状持续时间
   - 要训练 Agent 主动追问缺失的关键生命体征、时间线和危险信号
@@ -93,9 +97,12 @@
 - 分开两套索引：
   - 医学知识索引
   - 患者个体记忆索引
+- 中文主语料至少做到 `1GB+` 原始规模，更理想是 `2GB - 8GB`
 - 下载更可靠的原始资料：
   - 药品标签
   - 官方健康教育资料
+  - 中文临床参考手册
+  - 中文教材 / 中文医学百科 / 中文医患问答
   - 官方指南或可靠 guideline 文档
 - 评估当前 `guidelines_medqa_qa_v1` 是否只适合作弱知识补充
 
@@ -105,6 +112,15 @@
   - DailyMed
   - openFDA drug label API
   - MedlinePlus
+  - `hf-mirror` 上的中文医疗语料
+  - `MSD 手册中文专业版`
+- 当前重点中文数据池：
+  - `FreedomIntelligence/huatuo_encyclopedia_qa`
+  - `FreedomIntelligence/huatuo_knowledge_graph_qa`
+  - `FreedomIntelligence/Huatuo26M-Lite`
+  - `shibing624/medical`
+  - `wangrongsheng/cMedQA-V2.0`
+  - `ticoAg/Chinese-medical-dialogue`
 - 制定 chunk metadata：
   - `source_id`
   - `source_type`
@@ -118,6 +134,12 @@
 ## 8. QLoRA 主线
 
 - 明确 QLoRA 的核心用途，不把它只当“炫技点”
+- 重新设计文本 SFT 数据桶，不再把首程问诊和科普解释混在一起
+  - `BianQue-Intake`：短轮次、一问一答、首轮追问风格
+  - `LiShiZhen-Education`：长解释、科普、指标释义、患者友好说明
+- 等中文 RAG 主语料 chunk 完成后，重新定义文本 SFT 的输入输出风格
+  - `BianQue-Intake` 偏首程追问
+  - `LiShiZhen-Education` 偏引用知识后的解释与安抚
 - 目前更适合的用途：
   - 任务 adapter
   - 周期性持续学习

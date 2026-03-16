@@ -1,0 +1,114 @@
+[
+  {
+    "repo_id": "FreedomIntelligence/huatuo_encyclopedia_qa",
+    "repo_type": "dataset",
+    "allow_patterns": [
+      "train_datasets.jsonl",
+      "validation_datasets.jsonl",
+      "test_datasets.jsonl",
+      "README.md"
+    ],
+    "source_type": "cn_medical_encyclopedia_qa",
+    "title": "华佗百科问答",
+    "bucket": "rag_weak_qa",
+    "tags": [
+      "中文",
+      "医学百科",
+      "问答"
+    ],
+    "base_score": 0.52,
+    "max_workers": 4
+  },
+  {
+    "repo_id": "FreedomIntelligence/huatuo_knowledge_graph_qa",
+    "repo_type": "dataset",
+    "allow_patterns": [
+      "train_datasets.jsonl",
+      "validation_datasets.jsonl",
+      "test_datasets.jsonl",
+      "README.md"
+    ],
+    "source_type": "cn_medical_kg_qa",
+    "title": "华佗知识图谱问答",
+    "bucket": "rag_weak_qa",
+    "tags": [
+      "中文",
+      "医学知识图谱",
+      "问答"
+    ],
+    "base_score": 0.48,
+    "max_workers": 4
+  },
+  {
+    "repo_id": "FreedomIntelligence/Huatuo26M-Lite",
+    "repo_type": "dataset",
+    "allow_patterns": [
+      "format_data.jsonl",
+      "README.md"
+    ],
+    "source_type": "cn_medical_high_quality_qa",
+    "title": "Huatuo26M-Lite",
+    "bucket": "rag_weak_qa",
+    "tags": [
+      "中文",
+      "医疗问答",
+      "高质量"
+    ],
+    "base_score": 0.46,
+    "max_workers": 4
+  },
+  {
+    "repo_id": "shibing624/medical",
+    "repo_type": "dataset",
+    "allow_patterns": [
+      "pretrain/medical_book_zh.json",
+      "pretrain/train_encyclopedia.json",
+      "pretrain/valid_encyclopedia.json",
+      "pretrain/test_encyclopedia.json",
+      "README.md"
+    ],
+    "source_type": "cn_medical_pretrain_text",
+    "title": "MedicalGPT 预训练语料",
+    "bucket": "rag_textbook",
+    "tags": [
+      "中文",
+      "教材",
+      "百科"
+    ],
+    "base_score": 0.62,
+    "max_workers": 4
+  },
+  {
+    "repo_id": "wangrongsheng/cMedQA-V2.0",
+    "repo_type": "dataset",
+    "allow_patterns": [
+      "cMedQA2.json"
+    ],
+    "source_type": "cn_medical_qa",
+    "title": "cMedQA-V2.0",
+    "bucket": "rag_weak_qa",
+    "tags": [
+      "中文",
+      "医患问答"
+    ],
+    "base_score": 0.44,
+    "max_workers": 2
+  },
+  {
+    "repo_id": "ticoAg/Chinese-medical-dialogue",
+    "repo_type": "dataset",
+    "allow_patterns": [
+      "data/train_0001_of_0001.json",
+      "README.md"
+    ],
+    "source_type": "cn_medical_dialogue",
+    "title": "中文医疗对话",
+    "bucket": "rag_dialogue",
+    "tags": [
+      "中文",
+      "医患对话"
+    ],
+    "base_score": 0.4,
+    "max_workers": 2
+  }
+]

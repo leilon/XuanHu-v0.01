@@ -1,0 +1,146 @@
+[
+  {
+    "source_id": "bookshelf_clinical_methods_book",
+    "source_type": "open_textbook",
+    "specialty": "diagnostics",
+    "title": "Clinical Methods",
+    "url": "https://www.ncbi.nlm.nih.gov/books/NBK201/",
+    "tags": ["diagnostics", "history", "physical_exam", "laboratory"]
+  },
+  {
+    "source_id": "bookshelf_collecting_analyzing_data",
+    "source_type": "open_textbook",
+    "specialty": "diagnostics",
+    "title": "Collecting and Analyzing Data: Doing and Thinking",
+    "url": "https://www.ncbi.nlm.nih.gov/books/NBK353/",
+    "tags": ["diagnostics", "clinical_reasoning"]
+  },
+  {
+    "source_id": "bookshelf_use_of_laboratory",
+    "source_type": "open_textbook",
+    "specialty": "diagnostics",
+    "title": "Use of the Laboratory",
+    "url": "https://www.ncbi.nlm.nih.gov/books/NBK372/",
+    "tags": ["diagnostics", "laboratory", "test_interpretation"]
+  },
+  {
+    "source_id": "bookshelf_diabetes_mellitus",
+    "source_type": "open_textbook",
+    "specialty": "internal_medicine",
+    "title": "Diabetes Mellitus",
+    "url": "https://www.ncbi.nlm.nih.gov/books/NBK242/",
+    "tags": ["internal_medicine", "endocrinology", "diabetes"]
+  },
+  {
+    "source_id": "nice_pneumonia_recommendations",
+    "source_type": "guideline",
+    "specialty": "internal_medicine",
+    "title": "Pneumonia: diagnosis and management",
+    "url": "https://www.nice.org.uk/guidance/NG250/chapter/recommendations",
+    "tags": ["internal_medicine", "respiratory", "pneumonia", "guideline"]
+  },
+  {
+    "source_id": "nice_sepsis_over16_overview",
+    "source_type": "guideline",
+    "specialty": "internal_medicine",
+    "title": "Suspected sepsis in people aged 16 or over",
+    "url": "https://www.nice.org.uk/guidance/NG253",
+    "tags": ["internal_medicine", "infectious_disease", "sepsis", "guideline"]
+  },
+  {
+    "source_id": "bookshelf_essential_surgery",
+    "source_type": "open_textbook",
+    "specialty": "surgery",
+    "title": "Essential Surgery: Key Messages of This Volume",
+    "url": "https://www.ncbi.nlm.nih.gov/books/NBK333511/",
+    "tags": ["surgery", "open_textbook", "triage"]
+  },
+  {
+    "source_id": "bookshelf_obstetric_surgery",
+    "source_type": "open_textbook",
+    "specialty": "surgery",
+    "title": "Obstetric Surgery",
+    "url": "https://www.ncbi.nlm.nih.gov/books/NBK333514/",
+    "tags": ["surgery", "obstetrics", "emergency_care"]
+  },
+  {
+    "source_id": "nice_ectopic_miscarriage_recommendations",
+    "source_type": "guideline",
+    "specialty": "obgyn",
+    "title": "Ectopic pregnancy and miscarriage: diagnosis and initial management",
+    "url": "https://www.nice.org.uk/guidance/ng126/chapter/recommendations",
+    "tags": ["obgyn", "pregnancy", "bleeding", "guideline"]
+  },
+  {
+    "source_id": "who_postpartum_hemorrhage_2025",
+    "source_type": "guideline",
+    "specialty": "obgyn",
+    "title": "Consolidated guidelines for the prevention, diagnosis and treatment of postpartum haemorrhage",
+    "url": "https://www.who.int/publications/i/item/9789240115637",
+    "tags": ["obgyn", "postpartum_hemorrhage", "guideline"]
+  },
+  {
+    "source_id": "who_pcpnc_guide",
+    "source_type": "guideline",
+    "specialty": "obgyn",
+    "title": "Pregnancy, childbirth, postpartum and newborn care",
+    "url": "https://www.who.int/publications-detail-redirect/9789241549356",
+    "tags": ["obgyn", "newborn", "pregnancy", "guideline"]
+  },
+  {
+    "source_id": "nice_fever_under5_recommendations",
+    "source_type": "guideline",
+    "specialty": "pediatrics",
+    "title": "Fever in under 5s: assessment and initial management",
+    "url": "https://www.nice.org.uk/guidance/ng143/chapter/recommendations",
+    "tags": ["pediatrics", "fever", "triage", "guideline"]
+  },
+  {
+    "source_id": "nice_bronchiolitis_recommendations",
+    "source_type": "guideline",
+    "specialty": "pediatrics",
+    "title": "Bronchiolitis in children: diagnosis and management",
+    "url": "https://www.nice.org.uk/guidance/ng9/chapter/Recommendations",
+    "tags": ["pediatrics", "bronchiolitis", "respiratory", "guideline"]
+  },
+  {
+    "source_id": "nice_suspected_neurological_conditions",
+    "source_type": "guideline",
+    "specialty": "neurology",
+    "title": "Suspected neurological conditions: recognition and referral",
+    "url": "https://www.nice.org.uk/guidance/QS198/chapter/Quality-statements",
+    "tags": ["neurology", "red_flags", "referral", "guideline"]
+  },
+  {
+    "source_id": "nice_stroke_tia_recommendations",
+    "source_type": "guideline",
+    "specialty": "neurology",
+    "title": "Stroke and transient ischaemic attack in over 16s: diagnosis and initial management",
+    "url": "https://www.nice.org.uk/guidance/ng128/chapter/recommendations",
+    "tags": ["neurology", "stroke", "tia", "guideline"]
+  },
+  {
+    "source_id": "bookshelf_epilepsy_clinical_methods",
+    "source_type": "open_textbook",
+    "specialty": "neurology",
+    "title": "Epilepsy",
+    "url": "https://www.ncbi.nlm.nih.gov/books/NBK379/",
+    "tags": ["neurology", "epilepsy", "diagnostics"]
+  },
+  {
+    "source_id": "cdc_pneumococcal_clinical_guidance",
+    "source_type": "clinical_guidance",
+    "specialty": "internal_medicine",
+    "title": "Clinical Guidance for Pneumococcal Disease",
+    "url": "https://www.cdc.gov/pneumococcal/hcp/clinical-guidance/index.html",
+    "tags": ["internal_medicine", "infectious_disease", "pneumonia", "cdc"]
+  },
+  {
+    "source_id": "cdc_meningococcal_clinical_guidance",
+    "source_type": "clinical_guidance",
+    "specialty": "neurology",
+    "title": "Clinical Guidance for Meningococcal Disease",
+    "url": "https://www.cdc.gov/meningococcal/hcp/clinical-guidance/index.html",
+    "tags": ["neurology", "infectious_disease", "meningitis", "cdc"]
+  }
+]
