@@ -133,6 +133,7 @@ See also:
 - `docs/agentic_rl_synthesis.md`
 - `docs/agentic_rl_synthesis_zh.md`
 - `docs/agentic_rl_dataset_survey_zh.md`
+- `docs/clinical_first_visit_prompt_zh.md`
 
 ## 6) Agentic-RL Training Stage
 

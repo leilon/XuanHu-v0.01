@@ -21,8 +21,10 @@ class AppConfig:
     emergency_keywords: tuple[str, ...] = (
         "胸痛",
         "呼吸困难",
+        "喘不上气",
         "意识不清",
         "抽搐",
         "便血",
+        "黑便",
         "高热不退",
     )

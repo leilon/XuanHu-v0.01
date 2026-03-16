@@ -13,4 +13,3 @@ class ReportAgent(BaseAgent):
         latest = state.messages[-1].content if state.messages else ""
         parsed = self.report_tool.parse_report_text(latest)
         return f"报告解读：{parsed['summary']}"
-

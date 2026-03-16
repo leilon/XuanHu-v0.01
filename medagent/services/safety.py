@@ -8,15 +8,11 @@ class SafetyGuard:
     def detect_risk(self, text: str) -> str:
         if any(k in text for k in self.config.emergency_keywords):
             return "high"
-        if any(k in text for k in ("发烧", "咳嗽", "头痛", "腹痛")):
+        if any(k in text for k in ("发热", "咳嗽", "头痛", "腹痛", "尿痛", "皮疹")):
             return "medium"
         return "low"
 
     def enforce(self, draft: str, risk_level: str) -> str:
         if risk_level == "high":
-            return (
-                draft
-                + "\n\n[安全提示] 该描述可能涉及急症风险，请立即线下就医或呼叫急救。"
-            )
+            return draft + "\n\n[安全提示] 当前描述可能涉及急危重风险，请立即线下就医或呼叫急救。"
         return draft
-

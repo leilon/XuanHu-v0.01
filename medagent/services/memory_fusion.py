@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Any
 
 from medagent.services.adapter_bank import AdapterBank
 from medagent.services.memory import MemoryStore
@@ -8,7 +7,7 @@ from medagent.services.memory import MemoryStore
 @dataclass
 class FusionContext:
     task: str
-    profile: dict[str, str]
+    profile: dict[str, object]
     recent_turns: list[str]
     episodes: list[dict[str, str]]
 
@@ -27,7 +26,7 @@ class MemoryFusionEngine:
         task = self.adapter_bank.pick_task(query)
         return FusionContext(
             task=task,
-            profile=self.memory.get_profile(user_id),
+            profile=self.memory.build_clinical_snapshot(user_id),
             recent_turns=self.memory.get_recent(user_id),
             episodes=self.memory.recall_episodes(user_id, query, top_k=3),
         )
@@ -79,11 +78,10 @@ class MemoryFusionEngine:
         if generated:
             return generated
 
-        memory_hint = []
+        memory_hint: list[str] = []
         if ctx.profile:
-            memory_hint.append("已结合你的历史画像")
+            memory_hint.append("已结合长期记忆中的既往病史、过敏史和长期用药")
         if ctx.episodes:
-            memory_hint.append("已参考你过往就诊对话")
-        hint = "，".join(memory_hint) if memory_hint else "基于当前对话"
-        return f"{draft}\n[记忆融合] {hint}，建议遵医嘱并持续复诊跟踪。"
-
+            memory_hint.append("已参考既往同类就诊记录")
+        hint = "；".join(memory_hint) if memory_hint else "当前回答主要基于本轮对话"
+        return f"{draft}\n[记忆融合] {hint}，如症状持续或加重请尽快线下复诊。"

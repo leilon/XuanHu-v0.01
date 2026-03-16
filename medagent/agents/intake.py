@@ -1,20 +1,41 @@
 from medagent.agents.base import BaseAgent
 from medagent.schema import OrchestratorState
+from medagent.services.clinical_pathway import build_first_visit_prompt, build_intake_plan
 
 
 class IntakeAgent(BaseAgent):
     name = "intake"
 
     def run(self, state: OrchestratorState) -> str:
-        user_text = state.messages[-1].content if state.messages else ""
-        missing = []
-        if "几天" not in user_text and "天" not in user_text:
-            missing.append("症状持续时间")
-        if "体温" not in user_text and "度" not in user_text:
-            missing.append("体温范围")
-        if "过敏" not in user_text:
-            missing.append("药物过敏史")
-        if not missing:
-            return "病情采集较完整，可进入分诊与建议阶段。"
-        return f"建议继续追问：{', '.join(missing)}。"
+        plan = build_intake_plan(state)
+        plan["base_prompt"] = build_first_visit_prompt(state, plan)
+        state.artifacts["intake"] = plan
 
+        sections = [
+            f"主诉聚类：{'、'.join(plan['chief_complaints'])}",
+            "首程优先追问：",
+            "；".join(plan["targeted_questions"]),
+            "一般病史补充：",
+            "；".join(plan["general_questions"]),
+        ]
+        if plan["special_notes"]:
+            sections.extend(
+                [
+                    "特殊人群注意：",
+                    "；".join(plan["special_notes"]),
+                ]
+            )
+        if plan["memory_considerations"]:
+            sections.extend(
+                [
+                    "长期记忆带来的重点：",
+                    "；".join(plan["memory_considerations"]),
+                ]
+            )
+        sections.extend(
+            [
+                "建议初步检查：",
+                "；".join(plan["recommended_tests"]),
+            ]
+        )
+        return "\n".join(sections)
