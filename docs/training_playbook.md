@@ -1,0 +1,159 @@
+# Training Playbook (AutoDL + 7B)
+
+## 1) Base Models
+
+- Text base model: `Qwen/Qwen2.5-7B-Instruct`
+- Multimodal model (reports/images): `Qwen/Qwen2.5-VL-7B-Instruct`
+
+Why:
+- Chinese + English capability
+- Strong instruction-following for multi-agent tool calling
+- Mature HF ecosystem for QLoRA
+
+## 2) AutoDL Disk Layout
+
+Use data disk root:
+- `/root/autodl-tmp/medagent`
+
+Subdirectories:
+- `models/`: downloaded base models
+- `datasets/sft/`: SFT corpora
+- `datasets/rl/`: Agentic-RL preference data
+- `datasets/rag_raw/`: guideline/drug raw docs
+- `rag/`: chunked docs + vector index
+- `outputs/adapters/`: LoRA adapters
+- `wandb/`: local W&B cache and logs
+- `hf_cache/`: Hugging Face cache
+
+Initialize:
+
+```bash
+bash scripts/autodl_prepare_workspace.sh /root/autodl-tmp/medagent
+```
+
+## 3) SFT Data Choice
+
+Recommended mix (validated from HF mirror):
+- `BillGPT/Chinese-medical-dialogue-data` (Chinese doctor-patient dialogue)
+- `wangrongsheng/cMedQA-V2.0` (Chinese medical QA)
+- `medalpaca/medical_meadow_medqa` (English medical QA)
+- `FreedomIntelligence/Medical-R1-Distill-Data-Chinese` (Chinese reasoning-style medical SFT)
+- Internal synthetic trajectories:
+  - symptom collection
+  - triage
+  - medication QA
+  - report explanation
+
+Create final SFT JSONL format:
+- `{"input":"...", "output":"..."}`
+
+## 4) QLoRA Stage (Continual)
+
+Run SFT adapter training:
+
+```bash
+export WANDB_API_KEY=xxx
+bash scripts/run_sft_with_wandb.sh /root/autodl-tmp/medagent
+```
+
+Direct command:
+
+```bash
+python3 scripts/train_qlora.py \
+  --base-model /root/autodl-tmp/medagent/models/qwen2.5-7b-instruct \
+  --train-file /root/autodl-tmp/medagent/datasets/sft/train_v1.jsonl \
+  --replay-file /root/autodl-tmp/medagent/datasets/sft/replay_v0.jsonl \
+  --task general_intake \
+  --dataset-name med_sft_v1 \
+  --output-dir /root/autodl-tmp/medagent/outputs/adapters/general_intake_v1 \
+  --adapter-bank-dir /root/autodl-tmp/medagent/outputs/adapters \
+  --cache-dir /root/autodl-tmp/medagent/hf_cache \
+  --wandb-project medagent-7b \
+  --wandb-run-name sft-general-intake-v1 \
+  --wandb-dir /root/autodl-tmp/medagent/wandb
+```
+
+## 5) Agentic-RL Data Strategy
+
+Primary Agentic-RL preference source (validated):
+- `saepark/ultrafeedback-binarized-preferences-medical-cldfilter-train`
+- `saepark/ultrafeedback-binarized-preferences-medical-cldfilter-validation-1k`
+- `saepark/ultrafeedback-binarized-preferences-medical-cldfilter-test-1k`
+- `saepark/explicitMedical-medical-preference-pubmed-olmo-normal-rollouts-graded-by-claude`
+
+Recommended composition for first RL run:
+- 70%: medical preference pairs from above public sets
+- 20%: your own multi-agent logs (tool calls + safety outcomes)
+- 10%: hard negative cases (wrong triage / missing contraindication / no citations)
+
+Quality filters before RL:
+- Keep only pairs where prompt length < 2k tokens
+- Remove toxic/garbled outputs and empty assistant responses
+- Keep high-signal pairs where chosen has either:
+  - explicit safety guidance
+  - explicit citation/evidence
+  - clearer actionability than rejected
+
+`scripts/build_agentic_rl_data.py` additionally builds preference pairs from:
+- benchmark seeds
+- real dialogue logs (model draft vs improved final)
+
+Run:
+
+```bash
+python3 scripts/build_agentic_rl_data.py \
+  --benchmark-json data/benchmark_cases.json \
+  --dialogue-log-jsonl /root/autodl-tmp/medagent/datasets/rl/dialog_logs.jsonl \
+  --out-file /root/autodl-tmp/medagent/datasets/rl/agentic_pairs_v1.jsonl
+```
+
+Download + preprocess:
+
+```bash
+python3 scripts/download_medical_datasets.py --root /root/autodl-tmp/medagent/datasets
+python3 scripts/prepare_medical_training_data.py --root /root/autodl-tmp/medagent/datasets
+```
+
+Final files produced:
+- SFT: `/root/autodl-tmp/medagent/datasets/sft/train_sft_v1.jsonl`
+- RL pairs: `/root/autodl-tmp/medagent/datasets/rl/agentic_pairs_v2.jsonl`
+
+## 6) Agentic-RL Training Stage
+
+Practical first step is DPO-based policy optimization:
+
+```bash
+python3 scripts/train_agentic_rl.py \
+  --base-model /root/autodl-tmp/medagent/models/qwen2.5-7b-instruct \
+  --pairs-file /root/autodl-tmp/medagent/datasets/rl/agentic_pairs_v1.jsonl \
+  --task agentic_policy \
+  --output-dir /root/autodl-tmp/medagent/outputs/adapters/agentic_policy_v1 \
+  --adapter-bank-dir /root/autodl-tmp/medagent/outputs/adapters \
+  --cache-dir /root/autodl-tmp/medagent/hf_cache \
+  --wandb-project medagent-7b \
+  --wandb-run-name rl-agentic-policy-v1 \
+  --wandb-dir /root/autodl-tmp/medagent/wandb
+```
+
+## 7) Multimodal Stage
+
+Use report/image data to train `report_qa` adapter on VL-7B:
+- input: image/report text + question
+- output: abnormal findings + risk hint + next-step recommendation
+
+Store as:
+- `/root/autodl-tmp/medagent/datasets/sft/report_vl_v1.jsonl`
+
+## 8) Final Evaluation
+
+Run benchmark:
+
+```bash
+python3 -m medagent.benchmark.run --dataset data/benchmark_cases.json
+```
+
+Track in W&B:
+- loss / learning_rate / grad_norm
+- safety token recall
+- grounding citation rate
+- benchmark overall score

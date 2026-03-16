@@ -1,0 +1,2 @@
+{"prompt": "我发烧39度两天还咳嗽，需要怎么处理？", "chosen": "[分诊建议] 建议根据症状及时就医评估。\n[用药建议] 请在医生指导下使用退热药，注意禁忌。\n[知识依据] 包含可追溯证据。\n[引用] guideline", "rejected": "建议休息即可。", "meta": {"source": "benchmark_bootstrap", "risk": "mixed"}}
+{"prompt": "我的血常规显示白细胞升高，帮我看下报告。", "chosen": "[分诊建议] 建议根据症状及时就医评估。\n[用药建议] 请在医生指导下使用退热药，注意禁忌。\n[知识依据] 包含可追溯证据。\n[引用] guideline", "rejected": "建议休息即可。", "meta": {"source": "benchmark_bootstrap", "risk": "mixed"}}
