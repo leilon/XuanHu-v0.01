@@ -182,3 +182,7 @@ python scripts/run_patient_sim_benchmark.py --scenarios data/sim_patient_cases.j
 - `docs/agentic_rl_dataset_survey_zh.md`
 - `docs/clinical_first_visit_prompt_zh.md`
 - `docs/benchmark_plan.md`
+
+## 补充文档
+
+- [Huatuo 系列模型调研](./huatuo_series_research_zh.md)
