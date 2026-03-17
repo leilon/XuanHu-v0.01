@@ -90,6 +90,15 @@ def _html_soup(BeautifulSoup, text: str):
     raise RuntimeError("Could not initialize an HTML parser for BeautifulSoup.")
 
 
+def _repair_mojibake_url(url: str) -> str:
+    if "Ã" not in url and "Â" not in url:
+        return url
+    try:
+        return url.encode("latin-1").decode("utf-8")
+    except Exception:
+        return url
+
+
 def _download_medlineplus_xml(root: Path, requests, BeautifulSoup) -> None:
     print("[rag] downloading MedlinePlus health topics xml")
     response = requests.get(MEDLINEPLUS_XML_PAGE, timeout=60)
@@ -186,7 +195,7 @@ def _iter_msd_professional_urls(requests, max_pages: int) -> list[dict[str, str]
 
         candidates.append(
             {
-                "url": url,
+                "url": _repair_mojibake_url(url),
                 "specialty": specialty,
                 "path": path,
             }
