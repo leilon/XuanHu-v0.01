@@ -107,6 +107,15 @@ class RAGService:
         overlap_hyde = len(hyde_terms & doc_terms)
         return doc.score + overlap_query * 0.18 + overlap_rewrite * 0.1 + overlap_hyde * 0.04
 
+    def _prefilter_terms(self, query_terms: set[str], rewrite_terms: set[str], hyde_terms: set[str]) -> list[str]:
+        candidates = query_terms | rewrite_terms | hyde_terms
+        filtered = []
+        for term in candidates:
+            if len(term) >= 2 and re.search(r"[\u4e00-\u9fff]|[a-z0-9]{3,}", term):
+                filtered.append(term.lower())
+        filtered = sorted(set(filtered), key=len, reverse=True)
+        return filtered[:24]
+
     def retrieve(self, query: str, top_k: int = 2) -> list[RetrievedDoc]:
         expansion = self.expander.expand(query)
         query_terms = set(self._tokenize(expansion.original_query))
@@ -114,14 +123,31 @@ class RAGService:
         hyde_terms = set(self._tokenize(expansion.hyde_document))
 
         if self.streaming_mode and self.chunk_file.exists():
+            prefilter_terms = self._prefilter_terms(query_terms, rewrite_terms, hyde_terms)
             heap: list[tuple[float, int, RetrievedDoc]] = []
-            for idx, doc in enumerate(self._iter_chunk_file(self.chunk_file)):
-                score = self._score_doc(doc, query_terms, rewrite_terms, hyde_terms)
-                item = (score, idx, doc)
-                if len(heap) < top_k:
-                    heapq.heappush(heap, item)
-                elif score > heap[0][0]:
-                    heapq.heapreplace(heap, item)
+            with open(self.chunk_file, "r", encoding="utf-8") as handle:
+                for idx, line in enumerate(handle):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    lowered = line.lower()
+                    if prefilter_terms and not any(term in lowered for term in prefilter_terms):
+                        continue
+                    row = json.loads(line)
+                    doc = RetrievedDoc(
+                        source=str(row.get("source_id", "unknown")),
+                        title=str(row.get("title", "")),
+                        chunk=str(row.get("chunk", "")),
+                        score=float(row.get("score", 0.0)),
+                        source_type=str(row.get("source_type", "")),
+                        url=str(row.get("url", "")),
+                    )
+                    score = self._score_doc(doc, query_terms, rewrite_terms, hyde_terms)
+                    item = (score, idx, doc)
+                    if len(heap) < top_k:
+                        heapq.heappush(heap, item)
+                    elif score > heap[0][0]:
+                        heapq.heapreplace(heap, item)
             ranked = sorted(heap, key=lambda item: item[0], reverse=True)
             return [item[2] for item in ranked]
 
