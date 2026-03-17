@@ -6,7 +6,6 @@ This step is CPU/network-bound and can be done before renting GPUs.
 It supports:
 1. Structured official sources for symptom/drug grounding
 2. Chinese HF corpora via hf-mirror
-3. Chinese MSD Manuals professional pages via sitemap filtering
 """
 
 from __future__ import annotations
@@ -15,12 +14,10 @@ import argparse
 import json
 from pathlib import Path
 from urllib.parse import urljoin
-import xml.etree.ElementTree as ET
 
 
 MEDLINEPLUS_XML_PAGE = "https://medlineplus.gov/xml.html"
 OPENFDA_ENDPOINT = "https://api.fda.gov/drug/label.json"
-MSD_MANUALS_CN_SITEMAP = "https://www.msdmanuals.cn/sitemap.xml"
 
 DEFAULT_DRUGS = [
     "acetaminophen",
@@ -34,39 +31,6 @@ DEFAULT_DRUGS = [
     "aspirin",
     "albuterol",
 ]
-
-MSD_SPECIALTY_RULES = {
-    "diagnostics": (
-        "special-subjects",
-        "resources/normal-laboratory-values",
-        "pages-with-widgets/procedures-and-exams",
-    ),
-    "internal_medicine": (
-        "cardiology",
-        "pulmonology",
-        "gastroenterology",
-        "hematology",
-        "endocrinology",
-        "urology",
-        "infectious-disease",
-        "critical-care-medicine",
-        "hepatology",
-        "clinical-pharmacology",
-        "allergy-and-immunology",
-        "nutrition",
-    ),
-    "surgery": (
-        "injuries-poisoning",
-        "rheumatology-and-orthopedics",
-        "otolaryngology",
-        "ophthalmology",
-        "dentistry",
-    ),
-    "gynecology": ("gynecology-and-obstetrics",),
-    "pediatrics": ("pediatrics",),
-    "neurology": ("neurology",),
-}
-
 
 def _require_deps():
     try:
@@ -163,110 +127,6 @@ def _download_seed_pages(root: Path, requests, manifest_path: Path) -> None:
         )
 
 
-def _iter_msd_professional_urls(requests, max_pages: int) -> list[dict[str, str]]:
-    response = requests.get(
-        MSD_MANUALS_CN_SITEMAP,
-        timeout=120,
-        headers={"User-Agent": "Mozilla/5.0"},
-    )
-    response.raise_for_status()
-    root = ET.fromstring(response.text)
-    ns = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-    urls = [loc.text for loc in root.findall(".//sm:loc", ns) if loc.text]
-
-    candidates: list[dict[str, str]] = []
-    for url in urls:
-        if not url.startswith("https://www.msdmanuals.cn/professional/"):
-            continue
-        if any(fragment in url for fragment in ("/multimedia/", "/authors/", "/content/")):
-            continue
-
-        path = url.split("https://www.msdmanuals.cn/professional/", 1)[-1].strip("/")
-        if not path:
-            continue
-
-        specialty = ""
-        for name, prefixes in MSD_SPECIALTY_RULES.items():
-            if any(path.startswith(prefix) for prefix in prefixes):
-                specialty = name
-                break
-        if not specialty:
-            continue
-
-        candidates.append(
-            {
-                "url": _repair_mojibake_url(url),
-                "specialty": specialty,
-                "path": path,
-            }
-        )
-    return candidates[:max_pages]
-
-
-def _download_msd_manual_cn(root: Path, requests, max_pages: int) -> None:
-    target_dir = root / "msd_manual_cn_professional"
-    target_dir.mkdir(parents=True, exist_ok=True)
-    candidates = _iter_msd_professional_urls(requests, max_pages=max_pages)
-    downloaded = 0
-    skipped = 0
-    failures: list[dict[str, str]] = []
-    print(f"[rag] downloading MSD CN pages, candidates={len(candidates)}")
-    for idx, item in enumerate(candidates):
-        stem = f"{idx:05d}"
-        html_path = target_dir / f"{stem}.html"
-        meta_path = target_dir / f"{stem}.meta.json"
-        if html_path.exists() and meta_path.exists():
-            skipped += 1
-            continue
-        try:
-            response = requests.get(
-                item["url"],
-                timeout=90,
-                headers={"User-Agent": "Mozilla/5.0"},
-            )
-            response.raise_for_status()
-            html_path.write_text(response.text, encoding="utf-8")
-            meta_path.write_text(
-                json.dumps(
-                    {
-                        "source_id": f"msd_cn:{item['path']}",
-                        "source_type": "clinical_reference_cn",
-                        "title": item["path"].split("/")[-1].replace("-", " "),
-                        "url": item["url"],
-                        "specialty": item["specialty"],
-                        "tags": ["msd_cn_manual", item["specialty"]],
-                    },
-                    ensure_ascii=False,
-                    indent=2,
-                ),
-                encoding="utf-8",
-            )
-            downloaded += 1
-            if downloaded % 50 == 0:
-                print(f"[rag] MSD downloaded={downloaded}, skipped={skipped}, failures={len(failures)}")
-        except Exception as exc:
-            failures.append({"url": item["url"], "error": str(exc)})
-            if len(failures) <= 10:
-                print(f"[rag][warn] skip MSD page: {item['url']} -> {exc}")
-            continue
-    (target_dir / "_summary.json").write_text(
-        json.dumps(
-            {
-                "downloaded": downloaded,
-                "skipped_existing": skipped,
-                "failures": len(failures),
-                "sample_failures": failures[:20],
-            },
-            ensure_ascii=False,
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
-    print(
-        f"[rag] MSD CN complete: downloaded={downloaded}, skipped_existing={skipped}, failures={len(failures)}"
-    )
-
-
 def _download_hf_corpora(root: Path, snapshot_download, manifest_path: Path, endpoint: str) -> None:
     target_root = root / "hf_corpora"
     target_root.mkdir(parents=True, exist_ok=True)
@@ -318,8 +178,6 @@ def main() -> None:
     parser.add_argument("--with-cn-hf", action="store_true")
     parser.add_argument("--hf-manifest", default="configs/cn_rag_hf_manifest.json")
     parser.add_argument("--hf-endpoint", default="https://hf-mirror.com")
-    parser.add_argument("--with-msd-cn", action="store_true")
-    parser.add_argument("--msd-max-pages", type=int, default=1200)
     parser.add_argument("--only-cn", action="store_true")
     args = parser.parse_args()
 
@@ -338,9 +196,6 @@ def main() -> None:
 
     if args.with_cn_hf:
         _download_hf_corpora(root, snapshot_download, Path(args.hf_manifest), args.hf_endpoint)
-
-    if args.with_msd_cn:
-        _download_msd_manual_cn(root, requests, max_pages=args.msd_max_pages)
 
     print(f"[ok] downloaded RAG raw sources into {root}")
 

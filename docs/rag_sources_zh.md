@@ -1,150 +1,79 @@
-# RAG 文档源与 CPU 预处理方案
+﻿# RAG 文档源方案
 
-## 1. 这次的目标
+## 1. 当前目标
 
-这一版 RAG 不再只做“小而精”的 demo 语料，而是升级成两层结构：
+这版 RAG 以“尽快做出可讲、可演示的医疗 Agent demo”为目标，不再追求过度复杂的来源混搭。
+当前优先保留两类语料：
 
-1. 强证据层
-   - 临床参考手册
-   - 检验检查说明
-   - 药品标签
-   - 指南页
-2. 大体量中文补充层
-   - 中文医学百科
-   - 中文医患问答
-   - 中文医疗教材片段
-   - 中文医疗对话
+1. 中文 HF 医疗语料
+2. 少量结构化官方资料（仅在英文补充场景使用）
 
-这样做的原因很直接：
+用户已经明确放弃：
+- MSD 中文专业版
+- MedlinePlus Lab Tests
 
-- 首程问诊和分诊，需要足够宽的疾病覆盖面
-- 报告解读和问药，需要强证据资料兜底
-- 科普解释和长尾病种，需要大语料补充召回
+原因很简单：前者抓取质量不稳定，后者 HTML 结构不符合当前项目节奏。
 
-## 2. 语料规模应该做到什么量级
+## 2. 为什么当前主打 HF 中文医疗语料
 
-如果是为了做一个真正能支撑 `medicine agent` 的系统，我建议：
+因为我们现在最缺的不是“最权威的单页证据”，而是：
 
-- 原始语料：至少 `1GB+`
-- 更舒服的目标：`2GB - 8GB`
-- 清洗后 chunk 语料：通常会比原始网页更小，但依然可能有数十万到上百万 chunk
+1. 足够宽的中文疾病覆盖面
+2. 足够像真实问诊和医疗问答的中文表达
+3. 能快速支持 `BianQue-Intake`、`LiShiZhen-Education` 和后续 RAG demo 的大规模语料
 
-所以你说“至少得上 GB”是对的。  
-真正重要的不是单纯堆体量，而是把不同证据等级分层：
+当前保留的中文主语料：
 
-- `clinical_reference_cn / drug_label / medical_test`：高权重
-- `cn_medical_encyclopedia_qa / cn_medical_dialogue`：中低权重，作为召回补充
-
-## 3. 当前采用的两条主线
-
-### 3.1 官方与结构化资料
-
-这一层继续保留：
-
-- `MedlinePlus Health Topics`
-- `openFDA Drug Labels`
-
-用途：
-
-- 症状与疾病解释
-- 用药禁忌和药物安全
-
-补充说明：
-
-- `MedlinePlus Lab Tests` 已经从当前项目的 RAG 方案里移除
-- 原因不是版权，而是我们不喜欢它的 html 页面结构，也不想再维护这条解析链
-
-### 3.2 中文大体量资料
-
-这一层新增两类：
-
-#### A. Hugging Face / hf-mirror 中文医疗库
-
-当前准备接入：
-
+- `FreedomIntelligence/Huatuo26M-Lite`
 - `FreedomIntelligence/huatuo_encyclopedia_qa`
 - `FreedomIntelligence/huatuo_knowledge_graph_qa`
-- `FreedomIntelligence/Huatuo26M-Lite`
 - `shibing624/medical`
-- `wangrongsheng/cMedQA-V2.0`
-- `ticoAg/Chinese-medical-dialogue`
 
-这些源的意义不一样：
+这四类语料各自承担的作用：
 
-- `huatuo_encyclopedia_qa`：覆盖广，适合补疾病和药物知识
-- `huatuo_knowledge_graph_qa`：适合补结构化医学事实
-- `Huatuo26M-Lite`：高质量中文医疗 QA，可做宽覆盖补充
-- `shibing624/medical`：里面的 `medical_book_zh` 和 `train_encyclopedia` 很适合做教材/百科层
-- `cMedQA-V2.0`：医患问答补充
-- `Chinese-medical-dialogue`：真实问诊口语表达补充
+- `Huatuo26M-Lite`：高质量中文医疗问答，适合做广覆盖召回
+- `huatuo_encyclopedia_qa`：补疾病、检查、药物的百科问答层
+- `huatuo_knowledge_graph_qa`：补结构化医学事实
+- `shibing624/medical`：补教材、百科和通用中文医疗知识
 
-#### B. 中文临床参考手册
-
-这次新增：
-
-- `默沙东诊疗手册中文专业版（MSD Manuals CN Professional）`
-
-优点：
-
-- 中文专业内容
-- 按学科组织
-- 覆盖我们关心的：
-  - 内科学
-  - 外科学
-  - 诊断相关专题
-  - 妇产科学
-  - 儿科学
-  - 神经病学
-
-脚本层面会通过 sitemap 过滤这些学科页面，再做本地 html 抽取和 chunk。
-
-## 4. RAG 流程里的 QR 和 HyDE
+## 3. RAG 流程里的 QR 和 HyDE
 
 ### QR
 
 - 全称：`Query Rewriting`
-- 作用：把用户口语化、不完整的问题改写成更适合检索的查询
+- 作用：把用户口语化、信息不完整的表达改写成更适合检索的查询
 
-例如：
-
-- 用户原话：`我最近总觉得很难受，胸口有点堵，还喘。`
-- 重写后：`主诉=胸闷、气短；检索目标=危险信号、常见鉴别方向、首批检查建议、急诊指征`
+示例：
+- 用户原话：`我最近胸口堵得慌，还有点喘。`
+- 改写后：`主诉=胸闷、气短；检索目标=红旗症状、常见鉴别、初步检查建议、何时急诊`
 
 ### HyDE
 
 - 全称：`Hypothetical Document Embeddings`
-- 作用：先生成一段“假设性的理想文档”，再用它帮助检索更相关内容
+- 作用：先生成一段理想化的“假设文档”，再用这段文档辅助检索更相关的语料
 
-例如：
+示例：
+- `这是一名主诉胸闷和气短的患者，需要检索胸痛/呼吸困难相关危险信号、初步检查建议、门急诊分流和患者友好解释。`
 
-- `这是一名主诉胸闷和气短的患者，需重点检索胸痛/呼吸困难相关红旗症状、急诊指征、初步检查建议和患者友好解释。`
+## 4. CPU 阶段可以先做什么
 
-## 5. CPU 阶段先做什么
+在还没有切到 GPU 实例前，可以先完成：
 
-在没租 GPU 的时候，可以先做：
-
-1. 下载原始文档和数据集
-2. 清洗 HTML / XML / JSON / JSONL
+1. 下载原始 HF 语料
+2. 清洗 JSON / JSONL
 3. 统一成结构化 record
-4. chunk 切分
-5. 保存成统一 JSONL
+4. 按 chunk 规则切分
+5. 输出统一 JSONL 供后续 embedding 和建库
 
-这些主要都是 `CPU` 活。
+这些工作主要都是 CPU 和网络开销，不需要占用训练卡。
 
-更具体一点：
-
-- `下载 / 清洗 / chunk`：CPU 为主
-- `embedding / reranker / 向量建库`：CPU 也能做，GPU 更快
-
-所以现在完全可以先把 chunk 准备好，再去租卡做向量化和训练。
-
-## 6. 这次新增的脚本和配置
+## 5. 当前脚本
 
 - [download_rag_sources.py](../scripts/download_rag_sources.py)
 - [build_rag_corpus.py](../scripts/build_rag_corpus.py)
 - [cn_rag_hf_manifest.json](../configs/cn_rag_hf_manifest.json)
 
-## 7. 推荐运行方式
+## 6. 推荐运行方式
 
 先下载：
 
@@ -153,10 +82,8 @@ python scripts/download_rag_sources.py \
   --root /root/autodl-tmp/medagent/datasets/rag_raw \
   --only-cn \
   --with-cn-hf \
-  --with-msd-cn \
   --hf-manifest configs/cn_rag_hf_manifest.json \
-  --hf-endpoint https://hf-mirror.com \
-  --msd-max-pages 1200
+  --hf-endpoint https://hf-mirror.com
 ```
 
 再构建 chunk：
@@ -165,26 +92,17 @@ python scripts/download_rag_sources.py \
 python scripts/build_rag_corpus.py \
   --raw-root /root/autodl-tmp/medagent/datasets/rag_raw \
   --only-cn \
-  --out-file /root/autodl-tmp/medagent/rag/chunks/medical_corpus.jsonl
+  --out-file /root/autodl-tmp/medagent/rag/chunks/medical_corpus_cn.jsonl
 ```
 
-## 8. 后续要继续增强的点
+## 7. 下一步增强点
 
 1. 给不同来源加 `evidence_level`
-2. 增加中文指南 PDF / 网页解析器
-3. 做中文 `bge-m3` embedding
-4. 加 reranker
-5. 医学知识索引和患者记忆索引彻底拆开
+2. 接入中文 embedding，例如 `bge-m3`
+3. 增加 reranker
+4. 把“医学知识索引”和“患者记忆索引”彻底拆开
+5. 为 `LiShiZhen-Education` 增加引用式回答模板
 
-## 9. 参考来源
+## 8. 当前结论
 
-- [MedlinePlus XML](https://medlineplus.gov/xml.html)
-- [openFDA Drug Label API](https://open.fda.gov/apis/drug/label/)
-- [FreedomIntelligence/huatuo_encyclopedia_qa](https://huggingface.co/datasets/FreedomIntelligence/huatuo_encyclopedia_qa)
-- [FreedomIntelligence/huatuo_knowledge_graph_qa](https://huggingface.co/datasets/FreedomIntelligence/huatuo_knowledge_graph_qa)
-- [FreedomIntelligence/Huatuo26M-Lite](https://huggingface.co/datasets/FreedomIntelligence/Huatuo26M-Lite)
-- [shibing624/medical](https://huggingface.co/datasets/shibing624/medical)
-- [wangrongsheng/cMedQA-V2.0](https://huggingface.co/datasets/wangrongsheng/cMedQA-V2.0)
-- [ticoAg/Chinese-medical-dialogue](https://huggingface.co/datasets/ticoAg/Chinese-medical-dialogue)
-- [hf-mirror](https://hf-mirror.com)
-- [MSD 手册中文专业版](https://www.msdmanuals.cn/professional)
+对这个面试 demo 来说，先把 HF 中文医疗语料做大、做通、做稳定，比继续抓低质网页更重要。

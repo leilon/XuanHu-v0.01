@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 """
 Build a chunked diagnosis-oriented RAG corpus from downloaded medical sources.
 
@@ -209,49 +209,6 @@ def _yield_seed_pages(root: Path) -> list[dict[str, Any]]:
     return records
 
 
-def _yield_msd_manual_cn_pages(root: Path) -> list[dict[str, Any]]:
-    BeautifulSoup = _require_bs4()
-    records: list[dict[str, Any]] = []
-    page_root = root / "msd_manual_cn_professional"
-    for meta_file in sorted(page_root.glob("*.meta.json")):
-        meta = json.loads(meta_file.read_text(encoding="utf-8"))
-        html_file = page_root / f"{meta_file.stem[:-5]}.html"
-        if not html_file.exists():
-            continue
-        soup = _html_soup(BeautifulSoup, html_file.read_text(encoding="utf-8", errors="ignore"))
-        main = (
-            soup.find("main")
-            or soup.find("article")
-            or soup.find(attrs={"role": "main"})
-            or soup.find(id="mainContainer")
-            or soup.body
-        )
-        if not main:
-            continue
-        blocks: list[str] = []
-        for node in main.find_all(["h1", "h2", "h3", "p", "li"]):
-            text = _clean_text(node.get_text(" ", strip=True))
-            if not text or len(text) < 20:
-                continue
-            if "默沙东诊疗手册" in text and len(text) < 40:
-                continue
-            if text not in blocks:
-                blocks.append(text)
-        text = " ".join(blocks)
-        if not text:
-            continue
-        records.append(
-            {
-                "source_id": meta["source_id"],
-                "source_type": meta.get("source_type", "clinical_reference_cn"),
-                "title": meta.get("title", meta["source_id"]),
-                "url": meta.get("url", ""),
-                "text": text,
-                "tags": meta.get("tags", []) + [meta.get("specialty", "")],
-                "score": 0.88,
-            }
-        )
-    return records
 
 
 def _iter_json_records(path: Path) -> Iterable[dict[str, Any]]:
@@ -426,7 +383,6 @@ def main() -> None:
         records.extend(_yield_medlineplus_topics(raw_root))
         records.extend(_yield_openfda_labels(raw_root))
         records.extend(_yield_seed_pages(raw_root))
-    records.extend(_yield_msd_manual_cn_pages(raw_root))
     records.extend(_yield_hf_cn_corpora(raw_root))
 
     total_chunks = 0
