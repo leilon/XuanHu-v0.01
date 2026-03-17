@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 set -euo pipefail
 
 ROOT="${1:-/root/autodl-tmp/medagent}"
@@ -18,7 +18,8 @@ echo "[step] download multimodal model: $VLM_MODEL"
 huggingface-cli download "$VLM_MODEL" --local-dir "$ROOT/models/huatuogpt-vision-7b-qwen2.5vl" --resume-download
 
 echo "[step] download selected medical datasets"
-python3 scripts/download_medical_datasets.py --root "$ROOT/datasets"
-python3 scripts/prepare_medical_training_data.py --root "$ROOT/datasets"
+python3 trainer/data/download_medical_datasets.py --root "$ROOT/datasets"
+python3 trainer/data/prepare_medical_training_data.py --root "$ROOT/datasets"
 
 echo "[ok] assets downloaded under $ROOT"
+

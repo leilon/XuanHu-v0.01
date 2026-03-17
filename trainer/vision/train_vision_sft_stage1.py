@@ -1,9 +1,9 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 """
 Stage-1 vision SFT for QingNang-ClinicOS.
 
 Recommended launch on 4x5090:
-accelerate launch --config_file configs/accelerate_4x5090.yaml scripts/train_vision_sft_stage1.py \
+accelerate launch --config_file configs/accelerate_4x5090.yaml trainer/vision/train_vision_sft_stage1.py \
   --base-model /root/autodl-tmp/medagent/models/huatuogpt-vision-7b-qwen2.5vl \
   --train-file /root/autodl-tmp/medagent/datasets/sft/vision_report_train.jsonl \
   --eval-file /root/autodl-tmp/medagent/datasets/sft/vision_report_valid.jsonl \
@@ -19,7 +19,7 @@ from pathlib import Path
 import sys
 from typing import Any
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -279,3 +279,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

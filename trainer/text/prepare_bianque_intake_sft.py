@@ -303,9 +303,9 @@ def _build_followup(question: str) -> tuple[str, str]:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Prepare BianQue-Intake SFT data")
     parser.add_argument("--sft-root", default="/root/autodl-tmp/medagent/datasets/sft")
-    parser.add_argument("--train-out", default="/root/autodl-tmp/medagent/datasets/sft/bianque_intake_train.jsonl")
-    parser.add_argument("--valid-out", default="/root/autodl-tmp/medagent/datasets/sft/bianque_intake_valid.jsonl")
-    parser.add_argument("--summary-out", default="/root/autodl-tmp/medagent/datasets/sft/bianque_intake_summary.json")
+    parser.add_argument("--train-out", default="/root/autodl-tmp/medagent/datasets/curated/bianque_intake/train.jsonl")
+    parser.add_argument("--valid-out", default="/root/autodl-tmp/medagent/datasets/curated/bianque_intake/valid.jsonl")
+    parser.add_argument("--summary-out", default="/root/autodl-tmp/medagent/datasets/curated/bianque_intake/summary.json")
     parser.add_argument("--valid-ratio", type=float, default=0.02)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--max-samples", type=int, default=180000)

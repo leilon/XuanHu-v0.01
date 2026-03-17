@@ -1,4 +1,4 @@
-# 第一阶段训练方案：文本与视觉 SFT
+﻿# 第一阶段训练方案：文本与视觉 SFT
 
 ## 1. 先说结论
 
@@ -62,9 +62,9 @@
 
 当前脚本：
 
-- [prepare_text_sft_stage1.py](../scripts/prepare_text_sft_stage1.py)
-- [train_text_sft_stage1.py](../scripts/train_text_sft_stage1.py)
-- [text_sft_stage1.sample.jsonl](../data/text_sft_stage1.sample.jsonl)
+- [prepare_text_sft_stage1.py](../../trainer/text/prepare_text_sft_stage1.py)
+- [train_text_sft_stage1.py](../../trainer/text/train_text_sft_stage1.py)
+- [text_sft_stage1.sample.jsonl](../../data/text_sft_stage1.sample.jsonl)
 
 注意：
 
@@ -76,19 +76,19 @@
 推荐先生成训练文件：
 
 ```bash
-python scripts/prepare_text_sft_stage1.py \
+python trainer/text/prepare_text_sft_stage1.py \
   --sft-root /root/autodl-tmp/medagent/datasets/sft \
-  --train-out /root/autodl-tmp/medagent/datasets/sft/train_stage1_text.jsonl \
-  --valid-out /root/autodl-tmp/medagent/datasets/sft/valid_stage1_text.jsonl
+  --train-out /root/autodl-tmp/medagent/datasets/curated/text_stage1/train.jsonl \
+  --valid-out /root/autodl-tmp/medagent/datasets/curated/text_stage1/valid.jsonl
 ```
 
 推荐启动方式：
 
 ```bash
-accelerate launch --config_file configs/accelerate_4x5090.yaml scripts/train_text_sft_stage1.py \
+accelerate launch --config_file configs/accelerate_4x5090.yaml trainer/text/train_text_sft_stage1.py \
   --base-model /root/autodl-tmp/medagent/models/qwen2.5-7b-instruct \
-  --train-file /root/autodl-tmp/medagent/datasets/sft/train_stage1_text.jsonl \
-  --eval-file /root/autodl-tmp/medagent/datasets/sft/valid_stage1_text.jsonl \
+  --train-file /root/autodl-tmp/medagent/datasets/curated/text_stage1/train.jsonl \
+  --eval-file /root/autodl-tmp/medagent/datasets/curated/text_stage1/valid.jsonl \
   --output-dir /root/autodl-tmp/medagent/outputs/adapters/bianque_text_stage1 \
   --adapter-bank-dir /root/autodl-tmp/medagent/outputs/adapters \
   --cache-dir /root/autodl-tmp/medagent/hf_cache \
@@ -166,21 +166,21 @@ accelerate launch --config_file configs/accelerate_4x5090.yaml scripts/train_tex
 
 当前脚本：
 
-- [validate_vision_sft_data.py](../scripts/validate_vision_sft_data.py)
-- [train_vision_sft_stage1.py](../scripts/train_vision_sft_stage1.py)
-- [vision_report_sft.sample.jsonl](../data/vision_report_sft.sample.jsonl)
+- [validate_vision_sft_data.py](../../trainer/vision/validate_vision_sft_data.py)
+- [train_vision_sft_stage1.py](../../trainer/vision/train_vision_sft_stage1.py)
+- [vision_report_sft.sample.jsonl](../../data/vision_report_sft.sample.jsonl)
 
 正式训练前建议先校验标注文件：
 
 ```bash
-python scripts/validate_vision_sft_data.py \
+python trainer/vision/validate_vision_sft_data.py \
   --file /root/autodl-tmp/medagent/datasets/sft/vision_report_train.jsonl
 ```
 
 推荐启动方式：
 
 ```bash
-accelerate launch --config_file configs/accelerate_4x5090.yaml scripts/train_vision_sft_stage1.py \
+accelerate launch --config_file configs/accelerate_4x5090.yaml trainer/vision/train_vision_sft_stage1.py \
   --base-model /root/autodl-tmp/medagent/models/huatuogpt-vision-7b-qwen2.5vl \
   --train-file /root/autodl-tmp/medagent/datasets/sft/vision_report_train.jsonl \
   --eval-file /root/autodl-tmp/medagent/datasets/sft/vision_report_valid.jsonl \
@@ -201,3 +201,4 @@ accelerate launch --config_file configs/accelerate_4x5090.yaml scripts/train_vis
 2. 再用统一多模态模型做蒸馏或收敛
 
 这样更稳，而不是一开始就把所有复杂度压到一个模型上。
+

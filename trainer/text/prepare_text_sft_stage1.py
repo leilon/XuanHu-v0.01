@@ -14,7 +14,7 @@ import re
 import sys
 from typing import Any
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -183,8 +183,8 @@ def _limit_for(path: Path) -> int:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Prepare stage-1 text SFT data")
     parser.add_argument("--sft-root", default="/root/autodl-tmp/medagent/datasets/sft")
-    parser.add_argument("--train-out", default="/root/autodl-tmp/medagent/datasets/sft/train_stage1_text.jsonl")
-    parser.add_argument("--valid-out", default="/root/autodl-tmp/medagent/datasets/sft/valid_stage1_text.jsonl")
+    parser.add_argument("--train-out", default="/root/autodl-tmp/medagent/datasets/curated/text_stage1/train.jsonl")
+    parser.add_argument("--valid-out", default="/root/autodl-tmp/medagent/datasets/curated/text_stage1/valid.jsonl")
     parser.add_argument("--valid-ratio", type=float, default=0.02)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--max-output-chars", type=int, default=120)

@@ -26,7 +26,7 @@
 ## 3. 数据准备脚本
 
 脚本：
-- [prepare_bianque_intake_sft.py](../../scripts/prepare_bianque_intake_sft.py)
+- [prepare_bianque_intake_sft.py](../../trainer/text/prepare_bianque_intake_sft.py)
 
 它会做几件事：
 
@@ -39,7 +39,7 @@
 ## 4. 训练脚本
 
 脚本：
-- [train_bianque_intake_sft.py](../../scripts/train_bianque_intake_sft.py)
+- [train_bianque_intake_sft.py](../../trainer/text/train_bianque_intake_sft.py)
 
 训练时会固定一个系统角色：
 - 你是 `BianQue-Intake`
@@ -51,26 +51,33 @@
 先准备数据：
 
 ```bash
-python scripts/prepare_bianque_intake_sft.py \
+python trainer/text/prepare_bianque_intake_sft.py \
   --sft-root /root/autodl-tmp/medagent/datasets/sft \
-  --train-out /root/autodl-tmp/medagent/datasets/sft/bianque_intake_train.jsonl \
-  --valid-out /root/autodl-tmp/medagent/datasets/sft/bianque_intake_valid.jsonl \
-  --summary-out /root/autodl-tmp/medagent/datasets/sft/bianque_intake_summary.json
+  --train-out /root/autodl-tmp/medagent/datasets/curated/bianque_intake/train.jsonl \
+  --valid-out /root/autodl-tmp/medagent/datasets/curated/bianque_intake/valid.jsonl \
+  --summary-out /root/autodl-tmp/medagent/datasets/curated/bianque_intake/summary.json
 ```
 
 再训练：
 
 ```bash
-accelerate launch --config_file configs/accelerate_4x5090.yaml scripts/train_bianque_intake_sft.py \
+accelerate launch --config_file configs/accelerate_4x5090.yaml trainer/text/train_bianque_intake_sft.py \
   --base-model /root/autodl-tmp/medagent/models/qwen2.5-7b-instruct \
-  --train-file /root/autodl-tmp/medagent/datasets/sft/bianque_intake_train.jsonl \
-  --eval-file /root/autodl-tmp/medagent/datasets/sft/bianque_intake_valid.jsonl \
+  --train-file /root/autodl-tmp/medagent/datasets/curated/bianque_intake/train.jsonl \
+  --eval-file /root/autodl-tmp/medagent/datasets/curated/bianque_intake/valid.jsonl \
   --output-dir /root/autodl-tmp/medagent/outputs/adapters/bianque_intake_stage1 \
   --adapter-bank-dir /root/autodl-tmp/medagent/outputs/adapters \
   --cache-dir /root/autodl-tmp/medagent/hf_cache \
   --wandb-project qingnang-clinicos \
   --wandb-run-name bianque-intake-stage1
 ```
+
+## 5.1 数据位置约定
+
+- 原始下载数据：`/root/autodl-tmp/medagent/datasets/sft`
+- 清洗后的 BianQue 数据：`/root/autodl-tmp/medagent/datasets/curated/bianque_intake`
+
+这样做的目的是把“原始语料”和“首程问诊任务数据”拆开，避免后面训练时再把未清洗语料直接喂给 adapter。
 
 ## 6. 和 LiShiZhen-Education 的边界
 
@@ -87,3 +94,4 @@ accelerate launch --config_file configs/accelerate_4x5090.yaml scripts/train_bia
 - 诊后教育
 
 这两个 adapter 不应该混训。
+

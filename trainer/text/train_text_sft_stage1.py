@@ -1,5 +1,14 @@
 ﻿#!/usr/bin/env python
-"""QLoRA training entry for the BianQue-Intake adapter."""
+"""
+Stage-1 text SFT for QingNang-ClinicOS.
+
+Recommended launch on 4x5090:
+accelerate launch --config_file configs/accelerate_4x5090.yaml trainer/text/train_text_sft_stage1.py \
+  --base-model /root/autodl-tmp/medagent/models/qwen2.5-7b-instruct \
+  --train-file /root/autodl-tmp/medagent/datasets/curated/text_stage1/train.jsonl \
+  --eval-file /root/autodl-tmp/medagent/datasets/curated/text_stage1/valid.jsonl \
+  --output-dir /root/autodl-tmp/medagent/outputs/adapters/bianque_text_stage1
+"""
 
 from __future__ import annotations
 
@@ -7,13 +16,14 @@ import argparse
 import json
 import os
 from pathlib import Path
+import sys
 from typing import Any
 
-SYSTEM_PROMPT = (
-    "你是青囊系统里的 BianQue-Intake，负责首程问诊。"
-    "你的目标是先补齐关键病史、识别红旗症状、决定是否需要尽快线下就医。"
-    "不要一上来就下诊断，不要直接给很长的科普答案。"
-)
+ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from medagent.services.adapter_bank import AdapterBank, AdapterMeta
 
 
 def _load_jsonl(path: str) -> list[dict[str, Any]]:
@@ -45,32 +55,37 @@ def _set_wandb_env(args: argparse.Namespace) -> None:
         os.environ["WANDB_DIR"] = args.wandb_dir
 
 
-def _format_chat(tokenizer: Any, user_text: str, assistant_text: str, system_prompt: str) -> tuple[str, str]:
-    prompt_messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_text},
-    ]
+def _format_chat(tokenizer: Any, user_text: str, assistant_text: str) -> tuple[str, str]:
+    prompt_messages = [{"role": "user", "content": user_text}]
     full_messages = prompt_messages + [{"role": "assistant", "content": assistant_text}]
-    prompt_text = tokenizer.apply_chat_template(prompt_messages, tokenize=False, add_generation_prompt=True)
-    full_text = tokenizer.apply_chat_template(full_messages, tokenize=False, add_generation_prompt=False)
+    prompt_text = tokenizer.apply_chat_template(
+        prompt_messages,
+        tokenize=False,
+        add_generation_prompt=True,
+    )
+    full_text = tokenizer.apply_chat_template(
+        full_messages,
+        tokenize=False,
+        add_generation_prompt=False,
+    )
     return prompt_text, full_text
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Train the BianQue-Intake QLoRA adapter")
+    parser = argparse.ArgumentParser(description="Stage-1 text SFT for QingNang-ClinicOS")
     parser.add_argument("--base-model", required=True)
-    parser.add_argument("--train-file", default="/root/autodl-tmp/medagent/datasets/sft/bianque_intake_train.jsonl")
-    parser.add_argument("--eval-file", default="/root/autodl-tmp/medagent/datasets/sft/bianque_intake_valid.jsonl")
-    parser.add_argument("--output-dir", default="/root/autodl-tmp/medagent/outputs/adapters/bianque_intake_stage1")
-    parser.add_argument("--task", default="bianque_intake")
-    parser.add_argument("--dataset-name", default="bianque_intake_sft")
+    parser.add_argument("--train-file", required=True)
+    parser.add_argument("--eval-file", default="")
+    parser.add_argument("--output-dir", required=True)
+    parser.add_argument("--task", default="bianque_text_stage1")
+    parser.add_argument("--dataset-name", default="text_stage1")
     parser.add_argument("--adapter-bank-dir", default="adapters")
     parser.add_argument("--cache-dir", default="")
     parser.add_argument("--epochs", type=int, default=2)
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--batch-size", type=int, default=1)
     parser.add_argument("--grad-accum", type=int, default=16)
-    parser.add_argument("--max-len", type=int, default=1536)
+    parser.add_argument("--max-len", type=int, default=2048)
     parser.add_argument("--warmup-ratio", type=float, default=0.03)
     parser.add_argument("--lora-r", type=int, default=64)
     parser.add_argument("--lora-alpha", type=int, default=16)
@@ -82,7 +97,6 @@ def main() -> None:
     parser.add_argument("--wandb-run-name", default="")
     parser.add_argument("--wandb-entity", default="")
     parser.add_argument("--wandb-dir", default="")
-    parser.add_argument("--system-prompt", default=SYSTEM_PROMPT)
     args = parser.parse_args()
 
     try:
@@ -99,19 +113,16 @@ def main() -> None:
         )
     except Exception as exc:
         raise RuntimeError(
-            "Missing training deps. Install with: pip install transformers datasets peft bitsandbytes accelerate wandb"
+            "Missing training deps. Install with: "
+            "pip install transformers datasets peft bitsandbytes accelerate wandb"
         ) from exc
-
-    from medagent.services.adapter_bank import AdapterBank, AdapterMeta
 
     _set_hf_env(args.cache_dir)
     _set_wandb_env(args)
 
     local_rank = int(os.environ.get("LOCAL_RANK", "0"))
     train_rows = _load_jsonl(args.train_file)
-    eval_rows = _load_jsonl(args.eval_file) if args.eval_file and Path(args.eval_file).exists() else []
-    if not train_rows:
-        raise RuntimeError(f"No training rows found in {args.train_file}")
+    eval_rows = _load_jsonl(args.eval_file) if args.eval_file else []
 
     tokenizer = AutoTokenizer.from_pretrained(args.base_model, trust_remote_code=True)
     if tokenizer.pad_token is None:
@@ -148,10 +159,17 @@ def main() -> None:
             tokenizer,
             str(record.get("input", "")).strip(),
             str(record.get("output", "")).strip(),
-            args.system_prompt,
         )
-        full_tokens = tokenizer(full_text, truncation=True, max_length=args.max_len)
-        prompt_tokens = tokenizer(prompt_text, truncation=True, max_length=args.max_len)
+        full_tokens = tokenizer(
+            full_text,
+            truncation=True,
+            max_length=args.max_len,
+        )
+        prompt_tokens = tokenizer(
+            prompt_text,
+            truncation=True,
+            max_length=args.max_len,
+        )
         labels = list(full_tokens["input_ids"])
         prompt_len = min(len(prompt_tokens["input_ids"]), len(labels))
         for idx in range(prompt_len):
@@ -221,11 +239,14 @@ def main() -> None:
         "task": args.task,
         "dataset_name": args.dataset_name,
         "global_step": trainer.state.global_step,
-        "system_prompt": args.system_prompt,
     }
-    (output_dir / "training_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"[ok] BianQue-Intake adapter saved to {output_dir}")
+    (output_dir / "training_manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    print(f"[ok] stage-1 text adapter saved to {output_dir}")
 
 
 if __name__ == "__main__":
     main()
+

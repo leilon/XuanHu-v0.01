@@ -21,7 +21,8 @@ python -m medagent.benchmark.run --dataset data/benchmark_cases.json
 
 - `medagent/agents/`：各子 Agent
 - `medagent/services/`：RAG、记忆、路由、安全与工具层
-- `scripts/`：数据准备、训练、部署和评测脚本
+- `trainer/`：训练相关脚本，按数据、文本、视觉、RL 分层
+- `scripts/`：部署、RAG 构建、评测和环境辅助脚本
 - `data/`：样例数据和 benchmark 场景
 - `docs/`：中文主文档索引
 
@@ -30,6 +31,7 @@ python -m medagent.benchmark.run --dataset data/benchmark_cases.json
 - [文档总览](./docs/README.md)
 - [系统架构](./docs/system/architecture.md)
 - [训练总方案](./docs/training/training_playbook.md)
+- [SFT / Agent / Adapter 定位](./docs/training/sft_adapter_strategy_zh.md)
 - [BianQue-Intake SFT 说明](./docs/training/bianque_intake_sft_zh.md)
 - [BianQue 首程问诊 Prompt](./docs/system/clinical_first_visit_prompt_zh.md)
 - [RAG 设计](./docs/rag/rag_design.md)

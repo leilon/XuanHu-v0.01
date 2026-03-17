@@ -8,6 +8,7 @@
 
 ## 训练方案
 - [训练总方案](./training/training_playbook.md)
+- [SFT / Agent / Adapter 定位](./training/sft_adapter_strategy_zh.md)
 - [基模选择](./training/base_model_choice_zh.md)
 - [第一阶段训练方案](./training/stage1_training_plan_zh.md)
 - [BianQue-Intake SFT 说明](./training/bianque_intake_sft_zh.md)
