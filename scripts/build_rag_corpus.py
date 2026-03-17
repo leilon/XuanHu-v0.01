@@ -396,11 +396,10 @@ def _normalize_hf_row(row: dict[str, Any], meta: dict[str, Any]) -> dict[str, An
     }
 
 
-def _yield_hf_cn_corpora(root: Path, manifest_path: Path | None = None) -> list[dict[str, Any]]:
-    records: list[dict[str, Any]] = []
+def _yield_hf_cn_corpora(root: Path, manifest_path: Path | None = None) -> Iterable[dict[str, Any]]:
     corpora_root = root / "hf_corpora"
     if not corpora_root.exists():
-        return records
+        return
 
     manifest_map = _load_hf_manifest_map(manifest_path)
     for repo_dir in sorted(corpora_root.iterdir()):
@@ -419,8 +418,7 @@ def _yield_hf_cn_corpora(root: Path, manifest_path: Path | None = None) -> list[
             for row in _iter_json_records(file_path):
                 normalized = _normalize_hf_row(row, meta)
                 if normalized:
-                    records.append(normalized)
-    return records
+                    yield normalized
 
 
 def main() -> None:
@@ -437,30 +435,31 @@ def main() -> None:
     out_file = Path(args.out_file)
     out_file.parent.mkdir(parents=True, exist_ok=True)
 
-    records: list[dict[str, Any]] = []
-    if not args.only_cn:
-        records.extend(_yield_medlineplus_topics(raw_root))
-        records.extend(_yield_openfda_labels(raw_root))
-        records.extend(_yield_seed_pages(raw_root))
-    records.extend(_yield_hf_cn_corpora(raw_root, manifest_path=Path(args.hf_manifest)))
-
     total_chunks = 0
     with open(out_file, "w", encoding="utf-8") as handle:
-        for record in records:
-            chunks = _chunk_text(record["text"], max_chars=args.max_chars, overlap=args.overlap)
-            for idx, chunk in enumerate(chunks):
-                row = {
-                    "source_id": record["source_id"],
-                    "source_type": record["source_type"],
-                    "title": record["title"],
-                    "url": record["url"],
-                    "chunk_id": idx,
-                    "chunk": chunk,
-                    "tags": record["tags"],
-                    "score": record["score"],
-                }
-                handle.write(json.dumps(row, ensure_ascii=False) + "\n")
-                total_chunks += 1
+        def write_records(records: Iterable[dict[str, Any]]) -> None:
+            nonlocal total_chunks
+            for record in records:
+                chunks = _chunk_text(record["text"], max_chars=args.max_chars, overlap=args.overlap)
+                for idx, chunk in enumerate(chunks):
+                    row = {
+                        "source_id": record["source_id"],
+                        "source_type": record["source_type"],
+                        "title": record["title"],
+                        "url": record["url"],
+                        "chunk_id": idx,
+                        "chunk": chunk,
+                        "tags": record["tags"],
+                        "score": record["score"],
+                    }
+                    handle.write(json.dumps(row, ensure_ascii=False) + "\n")
+                    total_chunks += 1
+
+        if not args.only_cn:
+            write_records(_yield_medlineplus_topics(raw_root))
+            write_records(_yield_openfda_labels(raw_root))
+            write_records(_yield_seed_pages(raw_root))
+        write_records(_yield_hf_cn_corpora(raw_root, manifest_path=Path(args.hf_manifest)))
     print(f"[ok] wrote {total_chunks} chunks to {out_file}")
 
 
