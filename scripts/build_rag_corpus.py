@@ -411,7 +411,7 @@ def _yield_hf_cn_corpora(root: Path) -> list[dict[str, Any]]:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build chunked RAG corpus for QingNang-ClinicOS")
     parser.add_argument("--raw-root", default="/root/autodl-tmp/medagent/datasets/rag_raw")
-    parser.add_argument("--out-file", default="/root/autodl-tmp/medagent/rag/chunks/medical_corpus.jsonl")
+    parser.add_argument("--out-file", default="/root/autodl-tmp/medagent/rag/chunks/medical_corpus_cn.jsonl")
     parser.add_argument("--max-chars", type=int, default=420)
     parser.add_argument("--overlap", type=int, default=80)
     parser.add_argument("--only-cn", action="store_true")

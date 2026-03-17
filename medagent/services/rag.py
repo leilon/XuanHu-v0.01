@@ -19,7 +19,7 @@ class RetrievedDoc:
 
 
 class RAGService:
-    def __init__(self, chunk_file: str = "rag/chunks/medical_corpus.jsonl") -> None:
+    def __init__(self, chunk_file: str = "rag/chunks/medical_corpus_cn.jsonl") -> None:
         self.expander = QueryExpander()
         self.chunk_file = self._resolve_chunk_file(chunk_file)
         self.docs = [
@@ -47,11 +47,14 @@ class RAGService:
     def _resolve_chunk_file(self, chunk_file: str) -> Path:
         candidates = [
             Path(chunk_file),
+            Path("runtime_assets/rag/chunks/medical_corpus_cn.jsonl"),
             Path("runtime_assets/rag/chunks/medical_corpus.jsonl"),
+            Path("/root/autodl-tmp/medagent/rag/chunks/medical_corpus_cn.jsonl"),
             Path("/root/autodl-tmp/medagent/rag/chunks/medical_corpus.jsonl"),
         ]
         env_path = Path(Path.cwd(), "")
         if env_path:
+            candidates.append(Path.cwd() / "rag/chunks/medical_corpus_cn.jsonl")
             candidates.append(Path.cwd() / "rag/chunks/medical_corpus.jsonl")
         for candidate in candidates:
             if candidate.exists():
