@@ -247,6 +247,23 @@ def _iter_json_records(path: Path) -> Iterable[dict[str, Any]]:
     if path.suffix != ".json":
         return
 
+    if path.stat().st_size >= 8 * 1024 * 1024:
+        yielded = False
+        with open(path, "r", encoding="utf-8", errors="ignore") as handle:
+            for line in handle:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    row = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(row, dict):
+                    yielded = True
+                    yield row
+        if yielded:
+            return
+
     raw_text = path.read_text(encoding="utf-8", errors="ignore")
     try:
         payload = json.loads(raw_text)
