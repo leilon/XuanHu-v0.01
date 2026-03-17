@@ -91,6 +91,7 @@ def _html_soup(BeautifulSoup, text: str):
 
 
 def _download_medlineplus_xml(root: Path, requests, BeautifulSoup) -> None:
+    print("[rag] downloading MedlinePlus health topics xml")
     response = requests.get(MEDLINEPLUS_XML_PAGE, timeout=60)
     response.raise_for_status()
     soup = _html_soup(BeautifulSoup, response.text)
@@ -114,6 +115,7 @@ def _download_medlineplus_xml(root: Path, requests, BeautifulSoup) -> None:
 
 
 def _download_openfda_labels(root: Path, requests, limit: int) -> None:
+    print(f"[rag] downloading openFDA labels, limit={limit}")
     target_dir = root / "openfda_drug_labels"
     target_dir.mkdir(parents=True, exist_ok=True)
     for drug in DEFAULT_DRUGS[:limit]:
@@ -132,6 +134,7 @@ def _download_openfda_labels(root: Path, requests, limit: int) -> None:
 
 
 def _download_seed_pages(root: Path, requests, manifest_path: Path) -> None:
+    print(f"[rag] downloading seed pages from {manifest_path}")
     target_dir = root / "seed_pages"
     target_dir.mkdir(parents=True, exist_ok=True)
     seeds = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -195,53 +198,107 @@ def _download_msd_manual_cn(root: Path, requests, max_pages: int) -> None:
     target_dir = root / "msd_manual_cn_professional"
     target_dir.mkdir(parents=True, exist_ok=True)
     candidates = _iter_msd_professional_urls(requests, max_pages=max_pages)
+    downloaded = 0
+    skipped = 0
+    failures: list[dict[str, str]] = []
+    print(f"[rag] downloading MSD CN pages, candidates={len(candidates)}")
     for idx, item in enumerate(candidates):
-        response = requests.get(
-            item["url"],
-            timeout=90,
-            headers={"User-Agent": "Mozilla/5.0"},
-        )
-        response.raise_for_status()
         stem = f"{idx:05d}"
-        (target_dir / f"{stem}.html").write_text(response.text, encoding="utf-8")
-        (target_dir / f"{stem}.meta.json").write_text(
-            json.dumps(
-                {
-                    "source_id": f"msd_cn:{item['path']}",
-                    "source_type": "clinical_reference_cn",
-                    "title": item["path"].split("/")[-1].replace("-", " "),
-                    "url": item["url"],
-                    "specialty": item["specialty"],
-                    "tags": ["msd_cn_manual", item["specialty"]],
-                },
-                ensure_ascii=False,
-                indent=2,
-            ),
-            encoding="utf-8",
-        )
+        html_path = target_dir / f"{stem}.html"
+        meta_path = target_dir / f"{stem}.meta.json"
+        if html_path.exists() and meta_path.exists():
+            skipped += 1
+            continue
+        try:
+            response = requests.get(
+                item["url"],
+                timeout=90,
+                headers={"User-Agent": "Mozilla/5.0"},
+            )
+            response.raise_for_status()
+            html_path.write_text(response.text, encoding="utf-8")
+            meta_path.write_text(
+                json.dumps(
+                    {
+                        "source_id": f"msd_cn:{item['path']}",
+                        "source_type": "clinical_reference_cn",
+                        "title": item["path"].split("/")[-1].replace("-", " "),
+                        "url": item["url"],
+                        "specialty": item["specialty"],
+                        "tags": ["msd_cn_manual", item["specialty"]],
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
+            downloaded += 1
+            if downloaded % 50 == 0:
+                print(f"[rag] MSD downloaded={downloaded}, skipped={skipped}, failures={len(failures)}")
+        except Exception as exc:
+            failures.append({"url": item["url"], "error": str(exc)})
+            if len(failures) <= 10:
+                print(f"[rag][warn] skip MSD page: {item['url']} -> {exc}")
+            continue
+    (target_dir / "_summary.json").write_text(
+        json.dumps(
+            {
+                "downloaded": downloaded,
+                "skipped_existing": skipped,
+                "failures": len(failures),
+                "sample_failures": failures[:20],
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    print(
+        f"[rag] MSD CN complete: downloaded={downloaded}, skipped_existing={skipped}, failures={len(failures)}"
+    )
 
 
 def _download_hf_corpora(root: Path, snapshot_download, manifest_path: Path, endpoint: str) -> None:
     target_root = root / "hf_corpora"
     target_root.mkdir(parents=True, exist_ok=True)
     sources = json.loads(manifest_path.read_text(encoding="utf-8"))
+    failures: list[dict[str, str]] = []
     for item in sources:
         local_name = item.get("local_name") or item["repo_id"].replace("/", "__")
         repo_dir = target_root / local_name
-        snapshot_download(
-            repo_id=item["repo_id"],
-            repo_type=item.get("repo_type", "dataset"),
-            local_dir=repo_dir,
-            allow_patterns=item.get("allow_patterns"),
-            endpoint=endpoint,
-            local_dir_use_symlinks=False,
-            resume_download=True,
-            max_workers=int(item.get("max_workers", 4)),
-        )
-        (repo_dir / "source_meta.json").write_text(
-            json.dumps(item, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
+        print(f"[rag] downloading HF corpus {item['repo_id']} -> {repo_dir.name}")
+        try:
+            snapshot_download(
+                repo_id=item["repo_id"],
+                repo_type=item.get("repo_type", "dataset"),
+                local_dir=repo_dir,
+                allow_patterns=item.get("allow_patterns"),
+                endpoint=endpoint,
+                local_dir_use_symlinks=False,
+                resume_download=True,
+                max_workers=int(item.get("max_workers", 4)),
+            )
+            (repo_dir / "source_meta.json").write_text(
+                json.dumps(item, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+        except Exception as exc:
+            failures.append({"repo_id": item["repo_id"], "error": str(exc)})
+            print(f"[rag][warn] HF corpus failed, continue: {item['repo_id']} -> {exc}")
+            continue
+    (target_root / "_summary.json").write_text(
+        json.dumps(
+            {
+                "completed": len(sources) - len(failures),
+                "failures": len(failures),
+                "failed_items": failures,
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    print(f"[rag] HF corpora stage complete: completed={len(sources) - len(failures)}, failures={len(failures)}")
 
 
 def main() -> None:
@@ -260,6 +317,7 @@ def main() -> None:
     requests, BeautifulSoup, snapshot_download = _require_deps()
     root = Path(args.root)
     root.mkdir(parents=True, exist_ok=True)
+    print(f"[rag] target root={root}")
 
     if not args.only_cn:
         _download_medlineplus_xml(root, requests, BeautifulSoup)
