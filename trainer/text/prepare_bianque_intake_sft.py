@@ -150,6 +150,7 @@ EDUCATION_ONLY_HINTS = ("治疗方法", "怎么办", "严重吗", "要紧吗", "
 PERSON_HINTS = ("我", "本人", "孩子", "宝宝", "父亲", "母亲", "老人", "家里人", "老婆", "老公")
 PREGNANCY_HINTS = ("怀孕", "妊娠", "末次月经", "停经", "胎停", "阴道流血")
 HIGH_RISK_HINTS = ("抽搐", "昏迷", "意识不清", "意识改变", "脑膜炎", "脑炎", "惊厥", "一侧无力", "说话不清")
+DURATION_RE = re.compile(r"(近|已|持续|反复|突然|一直)?[0-9一二三四五六七八九十两半]+(天|周|个月|月|年|小时|分钟|日|次)")
 
 
 def _source_name(path: Path) -> str:
@@ -298,11 +299,15 @@ def _looks_like_intake_question(question: str) -> bool:
     symptom_hit = any(keyword in text for keyword in INTAKE_HINTS)
     person_hit = any(marker in text for marker in PERSON_HINTS)
     timeline_hit = any(marker in text for marker in TIMELINE_HINTS)
-    if any(keyword in text for keyword in GENERAL_EXCLUDE) and not (person_hit and (timeline_hit or symptom_hit)):
+    duration_hit = bool(DURATION_RE.search(text))
+    record_hit = any(marker in text for marker in ("住院", "检查", "化验", "复查", "诊断", "入院"))
+    high_risk_hit = any(keyword in text for keyword in HIGH_RISK_HINTS)
+    context_hit = timeline_hit or duration_hit or record_hit
+    if any(keyword in text for keyword in GENERAL_EXCLUDE) and not (person_hit and (context_hit or symptom_hit or high_risk_hit)):
         return False
-    if any(keyword in text for keyword in EDUCATION_ONLY_HINTS) and not (timeline_hit or any(marker in text for marker in ("住院", "检查", "化验", "复查"))):
+    if any(keyword in text for keyword in EDUCATION_ONLY_HINTS) and not (context_hit or high_risk_hit):
         return False
-    if not symptom_hit and not (person_hit and timeline_hit):
+    if not symptom_hit and not high_risk_hit and not (person_hit and context_hit):
         return False
     return True
 
