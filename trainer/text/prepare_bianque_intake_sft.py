@@ -22,6 +22,17 @@ SOURCE_LIMITS = {
 
 CASE_RULES = [
     {
+        "name": "neuro",
+        "keywords": ("头痛", "头晕", "抽搐", "意识不清", "意识改变", "昏迷", "说话不清", "一侧无力", "麻木", "脑膜炎", "脑炎", "惊厥"),
+        "questions": [
+            "这些症状是突然出现还是逐渐加重，持续了多久",
+            "有没有发热、呕吐、视物模糊、说话不清或者走路不稳",
+            "有没有一侧肢体无力、口角歪斜、抽搐或意识不清",
+            "既往有没有高血压、脑卒中、癫痫或近期头部外伤",
+        ],
+        "urgent": "如果是突发剧烈头痛、抽搐、意识改变、昏迷或一侧肢体无力，请立即急诊。",
+    },
+    {
         "name": "chest_pain",
         "keywords": ("胸痛", "胸闷", "胸口堵", "气短", "呼吸困难", "心慌", "心悸"),
         "questions": [
@@ -31,17 +42,6 @@ CASE_RULES = [
             "有没有高血压、冠心病、哮喘或慢阻肺这类基础病",
         ],
         "urgent": "如果现在胸痛明显、呼吸困难、出冷汗或快要晕倒，请立即急诊。",
-    },
-    {
-        "name": "respiratory",
-        "keywords": ("发热", "发烧", "咳嗽", "咳痰", "咽痛", "鼻塞", "流涕", "喘"),
-        "questions": [
-            "症状是从什么时候开始的，最高体温大概多少",
-            "咳嗽是干咳还是有痰，痰是什么颜色",
-            "有没有胸闷、气短、呼吸费力，或者接触过同样发热咳嗽的人",
-            "最近有没有熬夜、旅行、聚集接触史，或者本身有哮喘等慢病",
-        ],
-        "urgent": "如果持续高热不退、呼吸困难或精神状态明显变差，请尽快线下就医。",
     },
     {
         "name": "abdominal",
@@ -55,19 +55,8 @@ CASE_RULES = [
         "urgent": "如果腹痛剧烈、反复呕吐、黑便便血或肚子越来越硬，请尽快急诊评估。",
     },
     {
-        "name": "neuro",
-        "keywords": ("头痛", "头晕", "抽搐", "意识不清", "说话不清", "一侧无力", "麻木"),
-        "questions": [
-            "这些症状是突然出现还是逐渐加重，持续了多久",
-            "有没有发热、呕吐、视物模糊、说话不清或者走路不稳",
-            "有没有一侧肢体无力、口角歪斜、抽搐或意识不清",
-            "既往有没有高血压、脑卒中、癫痫或近期头部外伤",
-        ],
-        "urgent": "如果是突发剧烈头痛、抽搐、意识改变或一侧肢体无力，请立即急诊。",
-    },
-    {
         "name": "urinary_gyne",
-        "keywords": ("尿频", "尿急", "尿痛", "血尿", "下腹痛", "阴道流血", "白带", "月经"),
+        "keywords": ("尿频", "尿急", "尿痛", "血尿", "下腹痛", "阴道流血", "白带", "月经", "怀孕", "妊娠", "胎停"),
         "questions": [
             "症状持续多久了，排尿时是刺痛还是灼痛，下腹痛在什么位置",
             "有没有发热、腰痛、分泌物异常、月经推迟或阴道流血",
@@ -78,7 +67,7 @@ CASE_RULES = [
     },
     {
         "name": "skin_allergy",
-        "keywords": ("皮疹", "过敏", "瘙痒", "红疹", "风团", "荨麻疹"),
+        "keywords": ("皮疹", "瘙痒", "红疹", "风团", "荨麻疹", "皮肤痒", "起疹子"),
         "questions": [
             "皮疹是什么时候开始的，主要长在哪些部位，有没有越来越多",
             "有没有瘙痒、发热、嘴唇眼睑肿、喘不过气或喉咙紧",
@@ -87,9 +76,21 @@ CASE_RULES = [
         ],
         "urgent": "如果伴有呼吸困难、喉头紧缩或面唇肿胀，请立即急诊。",
     },
+    {
+        "name": "respiratory",
+        "keywords": ("发烧", "高热", "低热", "体温", "咳嗽", "咳痰", "咽痛", "鼻塞", "流涕", "喘", "胸闷", "气短"),
+        "questions": [
+            "症状是从什么时候开始的，最高体温大概多少",
+            "咳嗽是干咳还是有痰，痰是什么颜色",
+            "有没有胸闷、气短、呼吸费力，或者接触过同样发热咳嗽的人",
+            "最近有没有熬夜、旅行、聚集接触史，或者本身有哮喘等慢病",
+        ],
+        "urgent": "如果持续高热不退、呼吸困难或精神状态明显变差，请尽快线下就医。",
+    },
 ]
 
 GENERAL_EXCLUDE = (
+    "什么是",
     "是什么",
     "什么意思",
     "原理",
@@ -107,6 +108,48 @@ MALE_HINTS = ("男性", "男", "老公", "父亲", "爸爸")
 PEDIATRIC_HINTS = ("孩子", "宝宝", "婴儿", "幼儿", "儿子", "女儿")
 CHRONIC_HINTS = ("高血压", "糖尿病", "冠心病", "哮喘", "慢阻肺", "肾病", "肝病", "肿瘤")
 MEDICATION_HINTS = ("吃药", "用药", "药", "布洛芬", "阿莫西林", "二甲双胍", "阿司匹林")
+TIMELINE_HINTS = ("最近", "这几天", "今天", "昨天", "已经", "持续", "反复", "突然", "一直", "多年")
+INTAKE_HINTS = (
+    "疼",
+    "痛",
+    "发烧",
+    "高热",
+    "低热",
+    "体温",
+    "咳",
+    "痰",
+    "喘",
+    "呼吸",
+    "恶心",
+    "呕吐",
+    "腹泻",
+    "拉肚子",
+    "头晕",
+    "头痛",
+    "抽搐",
+    "尿",
+    "血",
+    "皮疹",
+    "瘙痒",
+    "流血",
+    "月经",
+    "怀孕",
+    "胎停",
+    "不舒服",
+    "难受",
+    "乏力",
+    "胸闷",
+    "心慌",
+    "食欲不振",
+    "昏迷",
+    "哭闹",
+    "模糊",
+)
+NON_INFECTIOUS_HEAT_HINTS = ("手足心发热", "舌头发热", "五心烦热", "潮热", "烘热", "口干舌燥")
+EDUCATION_ONLY_HINTS = ("治疗方法", "怎么办", "严重吗", "要紧吗", "怎么治", "会不会", "多少钱")
+PERSON_HINTS = ("我", "本人", "孩子", "宝宝", "父亲", "母亲", "老人", "家里人", "老婆", "老公")
+PREGNANCY_HINTS = ("怀孕", "妊娠", "末次月经", "停经", "胎停", "阴道流血")
+HIGH_RISK_HINTS = ("抽搐", "昏迷", "意识不清", "意识改变", "脑膜炎", "脑炎", "惊厥", "一侧无力", "说话不清")
 
 
 def _source_name(path: Path) -> str:
@@ -252,15 +295,40 @@ def _looks_like_intake_question(question: str) -> bool:
     text = question.strip()
     if len(text) < 6 or len(text) > 800:
         return False
-    symptom_hit = any(keyword in text for rule in CASE_RULES for keyword in rule["keywords"])
-    if any(keyword in text for keyword in GENERAL_EXCLUDE) and not symptom_hit:
+    symptom_hit = any(keyword in text for keyword in INTAKE_HINTS)
+    person_hit = any(marker in text for marker in PERSON_HINTS)
+    timeline_hit = any(marker in text for marker in TIMELINE_HINTS)
+    if any(keyword in text for keyword in GENERAL_EXCLUDE) and not (person_hit and (timeline_hit or symptom_hit)):
         return False
-    person_hit = any(marker in text for marker in ("我", "孩子", "宝宝", "父亲", "母亲", "老人", "家里人"))
-    return symptom_hit or person_hit
+    if any(keyword in text for keyword in EDUCATION_ONLY_HINTS) and not (timeline_hit or any(marker in text for marker in ("住院", "检查", "化验", "复查"))):
+        return False
+    if not symptom_hit and not (person_hit and timeline_hit):
+        return False
+    return True
+
+
+def _respiratory_match(question: str) -> bool:
+    if any(keyword in question for keyword in NON_INFECTIOUS_HEAT_HINTS):
+        return any(keyword in question for keyword in ("咳嗽", "咳痰", "咽痛", "鼻塞", "流涕", "喘", "胸闷", "气短", "体温", "发烧"))
+    return any(keyword in question for keyword in ("发烧", "高热", "低热", "体温", "咳嗽", "咳痰", "咽痛", "鼻塞", "流涕", "喘", "胸闷", "气短"))
+
+
+def _skin_allergy_match(question: str) -> bool:
+    return any(keyword in question for keyword in ("皮疹", "瘙痒", "红疹", "风团", "荨麻疹", "皮肤痒", "起疹子", "过敏反应", "过敏了"))
 
 
 def _infer_case(question: str) -> dict[str, Any]:
+    if any(keyword in question for keyword in HIGH_RISK_HINTS):
+        return CASE_RULES[0]
+    if _skin_allergy_match(question):
+        return next(rule for rule in CASE_RULES if rule["name"] == "skin_allergy")
+    if any(keyword in question for keyword in PREGNANCY_HINTS):
+        return next(rule for rule in CASE_RULES if rule["name"] == "urinary_gyne")
+    if _respiratory_match(question):
+        return next(rule for rule in CASE_RULES if rule["name"] == "respiratory")
     for rule in CASE_RULES:
+        if rule["name"] in {"neuro", "skin_allergy", "urinary_gyne", "respiratory"}:
+            continue
         if any(keyword in question for keyword in rule["keywords"]):
             return rule
     return {
@@ -277,6 +345,8 @@ def _infer_case(question: str) -> dict[str, Any]:
 
 def _append_contextual_questions(question: str, questions: list[str]) -> list[str]:
     enriched = list(questions)
+    if any(keyword in question for keyword in HIGH_RISK_HINTS) and not any("急诊" in item for item in enriched):
+        enriched.append("请立刻补充现在的意识状态、抽搐是否还在持续、有没有颈部僵硬或剧烈头痛，以及目前是否已经在医院急诊或住院")
     if any(keyword in question for keyword in CHRONIC_HINTS):
         enriched.append("请补充一下既往基础病控制得怎么样，最近有没有复查，平时长期在吃什么药")
     elif any(keyword in question for keyword in MEDICATION_HINTS):
@@ -287,6 +357,8 @@ def _append_contextual_questions(question: str, questions: list[str]) -> list[st
     pediatric = any(keyword in question for keyword in PEDIATRIC_HINTS)
     if pediatric:
         enriched.append("如果是孩子，请补充年龄、体重、精神状态、吃奶或进食情况，以及有没有高热或嗜睡")
+        if any(keyword in question for keyword in HIGH_RISK_HINTS):
+            enriched.append("孩子如果已经出现抽搐、昏迷、持续高热不退或反应差，需要尽快急诊评估")
     if female and not male and any(keyword in question for keyword in ("下腹", "腹痛", "阴道", "流血", "月经", "白带")):
         enriched.append("如果是育龄女性，还需要确认末次月经、是否可能怀孕，以及有没有阴道流血")
     return enriched
