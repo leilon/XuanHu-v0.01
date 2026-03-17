@@ -1,4 +1,4 @@
-# Training Playbook (AutoDL + 7B)
+﻿# Training Playbook (AutoDL + 7B)
 
 ## 1) Base Models
 
@@ -131,9 +131,9 @@ Final files produced:
 
 See also:
 - `docs/agentic_rl_synthesis.md`
-- `docs/agentic_rl_synthesis_zh.md`
-- `docs/agentic_rl_dataset_survey_zh.md`
-- `docs/clinical_first_visit_prompt_zh.md`
+- `./agentic_rl_synthesis_zh.md`
+- `./agentic_rl_dataset_survey_zh.md`
+- `../system/clinical_first_visit_prompt_zh.md`
 
 ## 6) Agentic-RL Training Stage
 
@@ -174,3 +174,4 @@ Track in W&B:
 - safety token recall
 - grounding citation rate
 - benchmark overall score
+
