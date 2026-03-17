@@ -209,6 +209,24 @@ def _yield_seed_pages(root: Path) -> list[dict[str, Any]]:
     return records
 
 
+def _default_hf_manifest_path() -> Path:
+    return Path(__file__).resolve().parents[1] / "configs" / "cn_rag_hf_manifest.json"
+
+
+def _load_hf_manifest_map(manifest_path: Path | None = None) -> dict[str, dict[str, Any]]:
+    path = manifest_path or _default_hf_manifest_path()
+    if not path.exists():
+        return {}
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    mapping: dict[str, dict[str, Any]] = {}
+    for item in payload:
+        if not isinstance(item, dict) or "repo_id" not in item:
+            continue
+        local_name = item.get("local_name") or item["repo_id"].replace("/", "__")
+        mapping[local_name] = item
+    return mapping
+
+
 
 
 def _iter_json_records(path: Path) -> Iterable[dict[str, Any]]:
@@ -229,7 +247,22 @@ def _iter_json_records(path: Path) -> Iterable[dict[str, Any]]:
     if path.suffix != ".json":
         return
 
-    payload = json.loads(path.read_text(encoding="utf-8", errors="ignore"))
+    raw_text = path.read_text(encoding="utf-8", errors="ignore")
+    try:
+        payload = json.loads(raw_text)
+    except json.JSONDecodeError:
+        for line in raw_text.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(row, dict):
+                yield row
+        return
+
     if isinstance(payload, list):
         for row in payload:
             if isinstance(row, dict):
@@ -304,6 +337,7 @@ def _normalize_hf_row(row: dict[str, Any], meta: dict[str, Any]) -> dict[str, An
             "title",
             "input",
             "prompt",
+            "questions",
         ),
     )
     answer = _pick_field(
@@ -315,6 +349,7 @@ def _normalize_hf_row(row: dict[str, Any], meta: dict[str, Any]) -> dict[str, An
             "Response",
             "output",
             "summary",
+            "answers",
         ),
     )
 
@@ -344,17 +379,23 @@ def _normalize_hf_row(row: dict[str, Any], meta: dict[str, Any]) -> dict[str, An
     }
 
 
-def _yield_hf_cn_corpora(root: Path) -> list[dict[str, Any]]:
+def _yield_hf_cn_corpora(root: Path, manifest_path: Path | None = None) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     corpora_root = root / "hf_corpora"
     if not corpora_root.exists():
         return records
 
+    manifest_map = _load_hf_manifest_map(manifest_path)
     for repo_dir in sorted(corpora_root.iterdir()):
-        meta_file = repo_dir / "source_meta.json"
-        if not meta_file.exists():
+        if not repo_dir.is_dir():
             continue
-        meta = json.loads(meta_file.read_text(encoding="utf-8"))
+        meta_file = repo_dir / "source_meta.json"
+        if meta_file.exists():
+            meta = json.loads(meta_file.read_text(encoding="utf-8"))
+        else:
+            meta = manifest_map.get(repo_dir.name)
+        if not meta:
+            continue
         for file_path in repo_dir.rglob("*"):
             if file_path.name == "source_meta.json" or file_path.suffix not in {".json", ".jsonl"}:
                 continue
@@ -371,6 +412,7 @@ def main() -> None:
     parser.add_argument("--out-file", default="/root/autodl-tmp/medagent/rag/chunks/medical_corpus_cn.jsonl")
     parser.add_argument("--max-chars", type=int, default=420)
     parser.add_argument("--overlap", type=int, default=80)
+    parser.add_argument("--hf-manifest", default=str(_default_hf_manifest_path()))
     parser.add_argument("--only-cn", action="store_true")
     args = parser.parse_args()
 
@@ -383,7 +425,7 @@ def main() -> None:
         records.extend(_yield_medlineplus_topics(raw_root))
         records.extend(_yield_openfda_labels(raw_root))
         records.extend(_yield_seed_pages(raw_root))
-    records.extend(_yield_hf_cn_corpora(raw_root))
+    records.extend(_yield_hf_cn_corpora(raw_root, manifest_path=Path(args.hf_manifest)))
 
     total_chunks = 0
     with open(out_file, "w", encoding="utf-8") as handle:

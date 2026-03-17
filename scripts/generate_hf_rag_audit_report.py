@@ -11,7 +11,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-from build_rag_corpus import _iter_json_records, _normalize_hf_row
+from build_rag_corpus import _default_hf_manifest_path, _iter_json_records, _load_hf_manifest_map, _normalize_hf_row
 
 
 def _clean_preview(value: Any, limit: int = 180) -> str:
@@ -33,12 +33,19 @@ def _discover_candidate_files(repo_dir: Path) -> list[Path]:
     return files
 
 
-def _collect_repo_samples(repo_dir: Path, sample_target: int, seed: int) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+def _collect_repo_samples(
+    repo_dir: Path,
+    sample_target: int,
+    seed: int,
+    manifest_map: dict[str, dict[str, Any]],
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     meta_file = repo_dir / "source_meta.json"
-    if not meta_file.exists():
+    if meta_file.exists():
+        meta = json.loads(meta_file.read_text(encoding="utf-8"))
+    else:
+        meta = manifest_map.get(repo_dir.name)
+    if not meta:
         return {}, []
-
-    meta = json.loads(meta_file.read_text(encoding="utf-8"))
     files = _discover_candidate_files(repo_dir)
     summary = {
         "repo_id": meta.get("repo_id", repo_dir.name),
@@ -81,7 +88,8 @@ def _collect_repo_samples(repo_dir: Path, sample_target: int, seed: int) -> tupl
                         or row.get("instruction")
                         or row.get("title")
                         or row.get("input")
-                        or row.get("prompt"),
+                        or row.get("prompt")
+                        or row.get("questions"),
                         120,
                     ),
                     "raw_answer": _clean_preview(
@@ -90,7 +98,8 @@ def _collect_repo_samples(repo_dir: Path, sample_target: int, seed: int) -> tupl
                         or row.get("response")
                         or row.get("Response")
                         or row.get("output")
-                        or row.get("summary"),
+                        or row.get("summary")
+                        or row.get("answers"),
                         140,
                     ),
                 }
@@ -144,21 +153,28 @@ def main() -> None:
     parser.add_argument("--root", required=True, help="HF corpora root directory")
     parser.add_argument("--out", required=True, help="Output markdown file")
     parser.add_argument("--sample-count", type=int, default=120)
+    parser.add_argument("--hf-manifest", default=str(_default_hf_manifest_path()))
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 
     root = Path(args.root)
+    manifest_map = _load_hf_manifest_map(Path(args.hf_manifest))
     repo_dirs = [path for path in sorted(root.iterdir()) if path.is_dir()]
-    repo_dirs = [path for path in repo_dirs if (path / "source_meta.json").exists()]
+    repo_dirs = [path for path in repo_dirs if (path / "source_meta.json").exists() or path.name in manifest_map]
     if not repo_dirs:
-        raise SystemExit(f"No corpus repos with source_meta.json found under {root}")
+        raise SystemExit(f"No corpus repos found under {root}")
 
     per_repo = max(1, math.ceil(args.sample_count / len(repo_dirs)))
     summaries: list[dict[str, Any]] = []
     all_samples: list[dict[str, Any]] = []
 
     for offset, repo_dir in enumerate(repo_dirs):
-        summary, samples = _collect_repo_samples(repo_dir, per_repo, seed=args.seed + offset)
+        summary, samples = _collect_repo_samples(
+            repo_dir,
+            per_repo,
+            seed=args.seed + offset,
+            manifest_map=manifest_map,
+        )
         summaries.append(summary)
         all_samples.extend(samples)
 
@@ -168,7 +184,12 @@ def main() -> None:
             needed = args.sample_count - len(all_samples)
             if needed <= 0:
                 break
-            _, extra = _collect_repo_samples(repo_dir, needed, seed=args.seed + 100 + offset)
+            _, extra = _collect_repo_samples(
+                repo_dir,
+                needed,
+                seed=args.seed + 100 + offset,
+                manifest_map=manifest_map,
+            )
             seen = {(item["repo_id"], item["file"], item["row_index"]) for item in all_samples}
             for item in extra:
                 key = (item["repo_id"], item["file"], item["row_index"])
