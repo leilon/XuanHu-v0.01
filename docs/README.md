@@ -29,6 +29,7 @@
 - [Benchmark 方案](./evaluation/benchmark_plan.md)
 - [多轮 Benchmark 与首程病历设计](./evaluation/multiturn_benchmark_caseflow_zh.md)
 - [多轮 API Benchmark 运行说明](./evaluation/api_multiturn_benchmark_zh.md)
+- [HealthBench 接入说明](./evaluation/healthbench_integration_zh.md)
 - [面试问答](./interview/interview_qa.md)
 
 ## 调研与规划
