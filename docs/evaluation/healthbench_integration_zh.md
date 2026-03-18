@@ -29,18 +29,18 @@
 
 ## 3. 官方调用方式
 
-官方最直接的运行命令是：
+如果直接在官方 `openai/simple-evals` 仓库根目录运行，最稳的方式是：
 
 ```bash
-python -m simple-evals.simple_evals --eval=healthbench --model=gpt-4.1
-python -m simple-evals.simple_evals --eval=healthbench_consensus --model=gpt-4.1
-python -m simple-evals.simple_evals --eval=healthbench_hard --model=gpt-4.1
+python simple_evals.py --eval=healthbench --model=gpt-4.1
+python simple_evals.py --eval=healthbench_consensus --model=gpt-4.1
+python simple_evals.py --eval=healthbench_hard --model=gpt-4.1
 ```
 
 也可以加这些参数：
 
 ```bash
-python -m simple-evals.simple_evals \
+python simple_evals.py \
   --eval=healthbench \
   --model=gpt-4.1 \
   --examples 100 \
@@ -203,11 +203,34 @@ python -m simple-evals.simple_evals \
 
 如果继续推进，我建议下一步做：
 
-1. 写一个 `HealthBench sampler adapter`
-2. 先抽 `30-50` 条样本跑通
+1. 准备好官方 `simple-evals` 仓库
+2. 用我们项目里的包装脚本直接调官方 runner
+3. 先抽 `30-50` 条样本跑通
 3. 记录：
 - overall
 - safety
 - context seeking
 - communication
 4. 和我们自己的多轮 benchmark 一起形成对照表
+
+## 11. 我们项目里已经准备好的脚本
+
+为了后续拿到 API 后直接跑，我已经加了：
+
+- `scripts/run_healthbench_official.py`
+
+推荐调用方式：
+
+```bash
+python scripts/run_healthbench_official.py \
+  --simple-evals-dir /root/autodl-tmp/medagent/benchmarks/simple-evals \
+  --eval healthbench \
+  --model gpt-4.1 \
+  --examples 30 \
+  --n-threads 16
+```
+
+前提：
+
+1. 你已经把官方 `openai/simple-evals` 仓库放到指定目录
+2. 已经设置 `OPENAI_API_KEY`
