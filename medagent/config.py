@@ -3,8 +3,8 @@ from dataclasses import dataclass, field
 
 @dataclass(frozen=True)
 class BrandingConfig:
-    project_name_en: str = "QingNang-ClinicOS"
-    project_name_zh: str = "青囊智诊"
+    project_name_en: str = "XuanHu-ClinicOS"
+    project_name_zh: str = "悬壶"
     project_tagline: str = "基于单一医学多模态基模的轻量级医疗 Agent Demo"
     orchestrator_name: str = "总控调度"
     intake_name: str = "门诊专家"
@@ -54,11 +54,16 @@ class AppConfig:
     use_adapter_bank: bool = False
     emergency_keywords: tuple[str, ...] = (
         "胸痛",
+        "胸口压着疼",
         "呼吸困难",
         "喘不上气",
+        "喘不过气",
         "意识不清",
         "抽搐",
         "便血",
         "黑便",
+        "发黑发亮",
+        "嘴唇发胀",
+        "喉咙发紧",
         "高热不退",
     )

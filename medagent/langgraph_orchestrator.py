@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from typing import Any, TypedDict
 
 from medagent.orchestrator import Orchestrator
@@ -293,10 +294,11 @@ class LangChainOrchestrator(Orchestrator):
         visit_completed: bool,
     ) -> str:
         if visit_completed and state.stop_reason in {
-            "triage_escalation",
             "patient_accepted_disposition",
+            "user_ended_conversation",
             "question_queue_exhausted",
             "enough_information_collected",
+            "max_turns_reached",
         }:
             return self._format_completed_turn_response(state)
 
@@ -633,6 +635,7 @@ class LangChainOrchestrator(Orchestrator):
     ) -> dict[str, Any]:
         existing_visit = self.memory.get_active_visit(user_id, visit_id) if visit_id else None
         graph = self._build_turn_graph()
+        started = time.perf_counter()
         result = graph.invoke(
             {
                 "user_id": user_id,
@@ -644,4 +647,6 @@ class LangChainOrchestrator(Orchestrator):
                 "existing_visit": existing_visit,
             }
         )
-        return result["turn_result"]
+        turn_result = dict(result["turn_result"])
+        turn_result["elapsed_sec"] = time.perf_counter() - started
+        return turn_result

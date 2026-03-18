@@ -53,6 +53,16 @@ DISPOSITION_DECLINE_PATTERNS = (
     "先观察",
 )
 
+USER_END_PATTERNS = (
+    "先这样",
+    "先到这",
+    "没有了",
+    "没有别的了",
+    "先不问了",
+    "谢谢",
+    "好的谢谢",
+)
+
 TRIAGE_PRIORITY = {
     "routine_outpatient": 0,
     "urgent_outpatient": 1,
@@ -152,6 +162,13 @@ def _user_accepts_disposition(text: str) -> bool:
     return any(token in latest for token in DISPOSITION_ACCEPT_PATTERNS)
 
 
+def _user_ended_conversation(text: str) -> bool:
+    latest = text.strip()
+    if not latest:
+        return False
+    return any(token in latest for token in USER_END_PATTERNS)
+
+
 def should_stop_visit(state: OrchestratorState, max_turns: int = 6) -> tuple[bool, str]:
     triage = state.artifacts.get("triage", {})
     triage_level = str(triage.get("level", "")).strip()
@@ -165,11 +182,8 @@ def should_stop_visit(state: OrchestratorState, max_turns: int = 6) -> tuple[boo
         if triage_level in {"urgent_outpatient", "consider_admission", "emergency"}:
             return True, "patient_accepted_disposition"
 
-    if triage_level == "emergency" and state.turn_index >= 2:
-        return True, "triage_escalation"
-
-    if triage_level == "consider_admission" and state.turn_index >= 3:
-        return True, "triage_escalation"
+    if _user_ended_conversation(latest_user_text):
+        return True, "user_ended_conversation"
     if state.turn_index >= max_turns:
         return True, "max_turns_reached"
     if len(state.filled_slots) >= 5 and state.turn_index >= 3:
