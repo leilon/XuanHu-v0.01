@@ -18,6 +18,7 @@ from medagent.services.rag import RAGService
 def _measure_queries(rag: RAGService, queries: list[str], top_k: int) -> list[dict]:
     rows = []
     for query in queries:
+        print(f"[query] {query}", flush=True)
         started = time.perf_counter()
         docs = rag.retrieve_knowledge(query, top_k=top_k)
         elapsed = time.perf_counter() - started
@@ -82,14 +83,18 @@ def main() -> None:
     cases = json.loads(Path(args.queries_json).read_text(encoding="utf-8"))
     queries = [item["opening"] for item in cases[: args.max_queries]]
 
+    print(f"[init] measuring {len(queries)} queries", flush=True)
     vector_rag = RAGService(chunk_file=args.chunk_file, vector_index_dir=args.vector_index_dir)
     lexical_rag = RAGService(chunk_file=args.chunk_file, vector_index_dir="rag/index/__missing__")
 
     # Warm up vector path once so the timing focuses on retrieval rather than first import cost.
     if queries:
+        print("[warmup] vector retriever", flush=True)
         vector_rag.retrieve_knowledge(queries[0], top_k=args.top_k)
 
+    print("[measure] vector", flush=True)
     vector_rows = _measure_queries(vector_rag, queries, args.top_k)
+    print("[measure] lexical", flush=True)
     lexical_rows = _measure_queries(lexical_rag, queries, args.top_k)
 
     payload = {

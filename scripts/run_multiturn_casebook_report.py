@@ -96,18 +96,22 @@ def main() -> None:
 
     cases = json.loads(Path(args.cases).read_text(encoding="utf-8"))
     simulator = PatientSimulator()
+    print(f"[init] loaded {len(cases)} cases", flush=True)
     orchestrator = LangChainOrchestrator()
+    print("[init] orchestrator ready", flush=True)
     evaluator = BenchmarkEvaluator()
     report_rows: list[dict] = []
 
     for case in cases:
         simulator.reset_case(case["id"])
+        print(f"[case] start {case['id']} {case['title']}", flush=True)
         history: list[dict] = []
         visit_id = None
         user_text = case["opening"]
         final_result: dict | None = None
 
-        for _ in range(args.max_turns):
+        for turn_idx in range(1, args.max_turns + 1):
+            print(f"[case] {case['id']} turn={turn_idx}", flush=True)
             final_result = orchestrator.run_visit_turn(
                 user_id=f"casebook_{case['id']}",
                 user_text=user_text,
@@ -119,6 +123,7 @@ def main() -> None:
             history.append({"role": "user", "content": user_text})
             history.append({"role": "assistant", "content": final_result["response"]})
             if final_result.get("visit_completed"):
+                print(f"[case] {case['id']} completed stop={final_result.get('stop_reason', '')}", flush=True)
                 break
             user_text = simulator.respond(
                 case,
