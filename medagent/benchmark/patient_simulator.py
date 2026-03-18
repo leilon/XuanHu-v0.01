@@ -43,14 +43,24 @@ class PatientSimulator:
         )
         return resp.choices[0].message.content or ""
 
-    def respond(self, scenario: dict, dialogue_history: list[dict]) -> str:
+    def respond(
+        self,
+        scenario: dict,
+        dialogue_history: list[dict],
+        *,
+        latest_agent_reply: str = "",
+        visit_state: dict | None = None,
+    ) -> str:
         system_prompt = (
-            "你是一个模拟病人。请仅根据给定设定作答，不要主动给出诊断结论。"
-            "你可以提供症状、持续时间、过敏史、基础病、用药史。"
+            "你是一个模拟病人。请只根据隐藏病例和已知对话信息作答，不要主动给出诊断结论。"
+            "每次回答尽量自然、简洁，不要一次性把所有病史都说完，除非医生明确追问。"
+            "如果医生问了多个问题，也优先回答最关键的 1 到 2 个。"
         )
         user_prompt = (
             f"病人设定: {scenario}\n"
             f"对话历史: {dialogue_history}\n"
+            f"医生上一句: {latest_agent_reply}\n"
+            f"当前 visit 状态: {visit_state or {}}\n"
             "请输出病人下一句回答，尽量自然、简洁。"
         )
         api_text = self._call_api(system_prompt, user_prompt)
@@ -63,4 +73,3 @@ class PatientSimulator:
         if scenario.get("name") == "report_case":
             return "我有体检报告，白细胞升高，最近乏力，想知道要不要马上去医院。"
         return "我最近不太舒服，想咨询一下。"
-

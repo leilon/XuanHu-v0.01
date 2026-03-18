@@ -29,6 +29,9 @@ class MemoryStore:
     short_term: dict[str, list[str]] = field(default_factory=dict)
     long_term: dict[str, dict[str, Any]] = field(default_factory=dict)
     episodic: dict[str, list[dict[str, str]]] = field(default_factory=dict)
+    visit_records: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
+    source_documents: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
+    active_visits: dict[str, dict[str, dict[str, Any]]] = field(default_factory=dict)
 
     def append_turn(self, user_id: str, text: str) -> None:
         turns = self.short_term.setdefault(user_id, [])
@@ -81,3 +84,34 @@ class MemoryStore:
             reverse=True,
         )
         return ranked[:top_k]
+
+    def append_visit_record(self, user_id: str, record: dict[str, Any]) -> None:
+        items = self.visit_records.setdefault(user_id, [])
+        items.append(record)
+        if len(items) > 100:
+            self.visit_records[user_id] = items[-100:]
+
+    def get_visit_records(self, user_id: str) -> list[dict[str, Any]]:
+        return list(self.visit_records.get(user_id, []))
+
+    def append_source_document(self, user_id: str, document: dict[str, Any]) -> None:
+        items = self.source_documents.setdefault(user_id, [])
+        items.append(document)
+        if len(items) > 100:
+            self.source_documents[user_id] = items[-100:]
+
+    def get_source_documents(self, user_id: str) -> list[dict[str, Any]]:
+        return list(self.source_documents.get(user_id, []))
+
+    def save_active_visit(self, user_id: str, visit_id: str, payload: dict[str, Any]) -> None:
+        visits = self.active_visits.setdefault(user_id, {})
+        visits[visit_id] = payload
+
+    def get_active_visit(self, user_id: str, visit_id: str) -> dict[str, Any] | None:
+        return self.active_visits.get(user_id, {}).get(visit_id)
+
+    def remove_active_visit(self, user_id: str, visit_id: str) -> None:
+        visits = self.active_visits.get(user_id, {})
+        visits.pop(visit_id, None)
+        if not visits and user_id in self.active_visits:
+            self.active_visits.pop(user_id, None)
