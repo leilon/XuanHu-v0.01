@@ -11,8 +11,9 @@ requires-python = ">=3.10"
 dependencies = []
 
 [project.optional-dependencies]
+runtime = ["transformers>=4.50.0", "accelerate>=0.34.0", "torch>=2.5.0", "qwen-vl-utils==0.0.14", "Pillow>=10.0.0", "sentencepiece>=0.2.0", "huggingface_hub>=0.26.0", "langchain-core>=0.3.0", "langgraph>=0.2.0"]
 train = ["transformers>=4.45.0", "datasets>=2.20.0", "peft>=0.12.0", "bitsandbytes>=0.43.0", "accelerate>=0.34.0", "torch>=2.2.0", "wandb>=0.18.0", "trl>=0.11.0", "Pillow>=10.0.0"]
-rag = ["requests>=2.32.0", "beautifulsoup4>=4.12.0", "lxml>=5.0.0"]
+rag = ["requests>=2.32.0", "beautifulsoup4>=4.12.0", "lxml>=5.0.0", "faiss-cpu>=1.8.0"]
 
 [tool.setuptools]
 packages = ["medagent", "medagent.agents", "medagent.services", "medagent.benchmark"]
