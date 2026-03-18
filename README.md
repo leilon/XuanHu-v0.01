@@ -1,8 +1,13 @@
-﻿# QingNang-ClinicOS
 
-面向中文互联网医疗场景的多 Agent 医疗助手 demo，目标是做出一套能用于实习面试展示、也能继续扩展到真实训练和工程化落地的项目骨架。
+# XuanHu-v0.01
+
+悬壶是一款聚焦C端就诊场景的Agents诊疗系统，旨在复刻临床医师的核心执业逻辑，打通动态沟通与精准决策双链路，区别于仅擅长静态医学问答的传统模型，实现全流程、策略化的辅助诊断服务。设计并落地了覆盖首程主动问诊、风险分诊、医学报告解读、个性化用药建议与健康科普的多Agent多模态智能体系。融合多模态感知、多智能体协作、双端检索采集与长效记忆完成系统编排，实现本地单卡高效推理部署与多病种场景验证。
+
+
+2026/3/18: v0.01版本基于HuaTuo-VL与prompt agent开发，效果实在太差，尝试更换基模为doctor_r1。v0.1版本开发中ing
 
 当前重点能力：
+
 - 多 Agent 编排
 - 首程问诊与分诊
 - 医疗 RAG
@@ -44,6 +49,7 @@ python -m medagent.benchmark.run --dataset data/benchmark_cases.json
 - 视觉主干：`HuatuoGPT-Vision-7B-Qwen2.5VL`
 
 当前判断是：
+
 - 文本能力先围绕首程问诊、多 Agent、工具调用和长期记忆补强
 - 视觉能力优先聚焦检验单 / 报告单 / 体检结果解释
 - Agentic-RL 放在最后做
@@ -63,3 +69,4 @@ python -m medagent.benchmark.run --dataset data/benchmark_cases.json
 3. 提升在线 RAG 检索效率
 4. 补强 benchmark 和 patient simulator
 5. 最后接 Agentic-RL
+   =================
