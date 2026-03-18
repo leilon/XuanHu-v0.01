@@ -1,0 +1,114 @@
+{
+  "vector": {
+    "summary": {
+      "count": 5,
+      "avg_sec": 0.5351773153990507,
+      "median_sec": 0.5458504520356655,
+      "min_sec": 0.513735206797719,
+      "max_sec": 0.551557395607233
+    },
+    "rows": [
+      {
+        "query": "我发烧咳嗽两天，今天还有点喘。",
+        "elapsed_sec": 0.5463032182306051,
+        "top_sources": [
+          "FreedomIntelligence/Huatuo26M-Lite:8b9da27e3b873258",
+          "FreedomIntelligence/Huatuo26M-Lite:f70eda608ccd0a3e",
+          "FreedomIntelligence/Huatuo26M-Lite:70084ec94a9a6440"
+        ]
+      },
+      {
+        "query": "我胸口压着疼，刚才还出汗，有点喘不过气。",
+        "elapsed_sec": 0.513735206797719,
+        "top_sources": [
+          "FreedomIntelligence/Huatuo26M-Lite:1f796b87d3049b77",
+          "FreedomIntelligence/Huatuo26M-Lite:aeff9f092173aa4b",
+          "FreedomIntelligence/Huatuo26M-Lite:da3b1b15aa244b69"
+        ]
+      },
+      {
+        "query": "孩子发烧两天，刚才还抽了两分钟。",
+        "elapsed_sec": 0.5184403043240309,
+        "top_sources": [
+          "FreedomIntelligence/Huatuo26M-Lite:8c285b5b02b17c66",
+          "FreedomIntelligence/Huatuo26M-Lite:1ecc42408ebabb97",
+          "FreedomIntelligence/Huatuo26M-Lite:f70eda608ccd0a3e"
+        ]
+      },
+      {
+        "query": "我这两天下腹痛，月经也推迟了。",
+        "elapsed_sec": 0.5458504520356655,
+        "top_sources": [
+          "FreedomIntelligence/Huatuo26M-Lite:f5c1dc9be15576e9",
+          "FreedomIntelligence/Huatuo26M-Lite:36fb7b47f7ba5a93",
+          "FreedomIntelligence/Huatuo26M-Lite:1b6f05310741e7b5"
+        ]
+      },
+      {
+        "query": "这两天老想上厕所，还尿痛。",
+        "elapsed_sec": 0.551557395607233,
+        "top_sources": [
+          "FreedomIntelligence/Huatuo26M-Lite:bc4b86a2189d4de2",
+          "FreedomIntelligence/Huatuo26M-Lite:83181423f47d18c9",
+          "FreedomIntelligence/Huatuo26M-Lite:851c4eff0ea28928"
+        ]
+      }
+    ]
+  },
+  "lexical": {
+    "summary": {
+      "count": 5,
+      "avg_sec": 61.67572192437947,
+      "median_sec": 0.5591198578476906,
+      "min_sec": 0.5254505649209023,
+      "max_sec": 306.2016427926719
+    },
+    "rows": [
+      {
+        "query": "我发烧咳嗽两天，今天还有点喘。",
+        "elapsed_sec": 306.2016427926719,
+        "top_sources": [
+          "FreedomIntelligence/Huatuo26M-Lite:8b9da27e3b873258",
+          "FreedomIntelligence/Huatuo26M-Lite:f70eda608ccd0a3e",
+          "FreedomIntelligence/Huatuo26M-Lite:70084ec94a9a6440"
+        ]
+      },
+      {
+        "query": "我胸口压着疼，刚才还出汗，有点喘不过气。",
+        "elapsed_sec": 0.5254505649209023,
+        "top_sources": [
+          "FreedomIntelligence/Huatuo26M-Lite:1f796b87d3049b77",
+          "FreedomIntelligence/Huatuo26M-Lite:aeff9f092173aa4b",
+          "FreedomIntelligence/Huatuo26M-Lite:da3b1b15aa244b69"
+        ]
+      },
+      {
+        "query": "孩子发烧两天，刚才还抽了两分钟。",
+        "elapsed_sec": 0.5279853139072657,
+        "top_sources": [
+          "FreedomIntelligence/Huatuo26M-Lite:8c285b5b02b17c66",
+          "FreedomIntelligence/Huatuo26M-Lite:1ecc42408ebabb97",
+          "FreedomIntelligence/Huatuo26M-Lite:f70eda608ccd0a3e"
+        ]
+      },
+      {
+        "query": "我这两天下腹痛，月经也推迟了。",
+        "elapsed_sec": 0.5591198578476906,
+        "top_sources": [
+          "FreedomIntelligence/Huatuo26M-Lite:f5c1dc9be15576e9",
+          "FreedomIntelligence/Huatuo26M-Lite:36fb7b47f7ba5a93",
+          "FreedomIntelligence/Huatuo26M-Lite:1b6f05310741e7b5"
+        ]
+      },
+      {
+        "query": "这两天老想上厕所，还尿痛。",
+        "elapsed_sec": 0.5644110925495625,
+        "top_sources": [
+          "FreedomIntelligence/Huatuo26M-Lite:bc4b86a2189d4de2",
+          "FreedomIntelligence/Huatuo26M-Lite:83181423f47d18c9",
+          "FreedomIntelligence/Huatuo26M-Lite:851c4eff0ea28928"
+        ]
+      }
+    ]
+  }
+}

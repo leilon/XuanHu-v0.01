@@ -44,6 +44,15 @@ def _fmt_dialogue(dialogue: list[dict[str, str]]) -> str:
     return "\n".join(lines)
 
 
+def _fmt_distilled_turns(turns: list[dict[str, Any]]) -> str:
+    lines: list[str] = []
+    for turn in turns:
+        lines.append(f"- 第 {turn.get('turn_index', '')} 轮（{turn.get('style', '')}）")
+        lines.append(f"  - 原始医生回复：{turn.get('raw_output', '')}")
+        lines.append(f"  - 压缩后训练标签：{turn.get('distilled_output', '')}")
+    return "\n".join(lines)
+
+
 def _build_report(
     rows: list[dict[str, Any]],
     sampled: dict[str, list[dict[str, Any]]],
@@ -59,7 +68,7 @@ def _build_report(
     lines.append("")
     lines.append(f"- 数据文件：`{dataset_path}`")
     lines.append(f"- 总对话数：`{len(rows)}`")
-    lines.append(f"- 抽样规则：每个 `case_type` 抽 `10` 条")
+    lines.append(f"- 抽样规则：每个 `case_type` 抽 `{sample_size}` 条")
     lines.append("")
     lines.append("## 类型分布")
     lines.append("")
@@ -86,6 +95,10 @@ def _build_report(
             lines.append("**完整对话**")
             lines.append("")
             lines.append(_fmt_dialogue(row.get("dialogue", [])))
+            lines.append("")
+            lines.append("**压缩后的训练标签**")
+            lines.append("")
+            lines.append(_fmt_distilled_turns(row.get("distilled_turns", [])))
             lines.append("")
     return "\n".join(lines) + "\n"
 
