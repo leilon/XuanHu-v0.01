@@ -1,6 +1,6 @@
-# ?? API Benchmark ??
+# 多轮 API Benchmark 快照
 
-?? `/root/autodl-tmp/medagent/outputs/reports/multiturn_api_benchmark_report.json` ???????
+基于仓库内报告文件 `docs/reports/multiturn_api_benchmark_report.json` 生成的快照。
 
 ## sim_case_001
 - `overall`: 0.800
@@ -9,7 +9,7 @@
 - `grounding`: 1.000
 - `visit_completed`: True
 - `stop_reason`: enough_information_collected
-- `final_response`: 高烧持续不退，请尽快前往医院就诊。您是否有慢性基础疾病？正在服用其他药物吗？建议检查血常规、CRP/降钙素原、流感/新冠抗原或核酸，必要时做胸片或肺部CT。
+- `final_response`: 高烧持续不退，请尽快前往医院就诊。您是否有慢性基础疾病？正在服用其他药物吗？建议检查血常规、CRP/降钙素原、流感/新冠抗原或核酸，必要时做胸片或肺部 CT。
 
 ## sim_case_002
 - `overall`: 0.100
