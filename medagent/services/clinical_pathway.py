@@ -9,26 +9,35 @@ FEMALE_TOKENS = {"female", "f", "女", "woman", "女性"}
 MALE_TOKENS = {"male", "m", "男", "man", "男性"}
 
 COMPLAINT_RULES = [
-    ("胸痛/胸闷", ("胸痛", "胸闷", "心口痛", "压榨痛", "胸口疼", "胸口堵", "堵得慌", "胸口发紧")),
-    ("发热/呼吸道症状", ("发热", "发烧", "咳嗽", "咳痰", "咽痛", "鼻塞", "流涕", "气促", "喘", "喘不过气")),
-    ("腹痛/消化道症状", ("腹痛", "肚子痛", "腹泻", "呕吐", "恶心", "黑便", "便血")),
-    ("头痛/神经系统症状", ("头痛", "头晕", "抽搐", "意识不清", "言语不清", "肢体无力")),
+    ("胸痛/胸闷", ("胸痛", "胸闷", "心口痛", "压榨痛", "胸口疼", "胸口压着疼", "胸口堵", "堵得慌", "胸口发紧")),
+    ("发热/呼吸道症状", ("发热", "发烧", "咳嗽", "咳痰", "咽痛", "鼻塞", "流涕", "气促", "喘", "喘不过气", "呼吸困难")),
+    ("腹痛/消化道症状", ("腹痛", "肚子痛", "腹泻", "呕吐", "恶心", "黑便", "便血", "发黑发亮", "大便发黑")),
+    ("头痛/神经系统症状", ("头痛", "头晕", "抽搐", "意识不清", "言语不清", "说话不清", "肢体无力")),
     ("泌尿生殖系统症状", ("尿频", "尿急", "尿痛", "血尿", "阴道流血", "白带", "下腹痛")),
-    ("皮疹/过敏", ("皮疹", "荨麻疹", "瘙痒", "过敏", "红疹")),
+    ("皮疹/过敏", ("皮疹", "荨麻疹", "瘙痒", "过敏", "红疹", "疹子", "嘴唇发胀", "喉咙发紧")),
     ("报告解读", ("报告", "化验", "检验", "白细胞", "胸片", "彩超", "CT", "MRI", "影像")),
 ]
 
 EMERGENCY_KEYWORDS = (
     "胸痛",
+    "胸口压着疼",
+    "胸口发紧",
     "呼吸困难",
     "喘不上气",
+    "喘不过气",
+    "大汗",
+    "出汗",
     "意识不清",
     "抽搐",
     "便血",
     "黑便",
+    "发黑发亮",
     "呕血",
+    "嘴唇发胀",
+    "喉咙发紧",
     "单侧无力",
     "言语不清",
+    "说话不清",
 )
 
 ADMISSION_HINTS = (
@@ -41,6 +50,9 @@ ADMISSION_HINTS = (
     "持续胸痛",
     "黑便",
     "便血",
+    "发黑发亮",
+    "反复黑便",
+    "发虚",
 )
 
 HIGH_RISK_COMORBIDITIES = (
@@ -308,14 +320,15 @@ def extract_profile_updates(state: OrchestratorState) -> dict[str, Any]:
 
 def build_triage_decision(state: OrchestratorState) -> dict[str, Any]:
     query = state.messages[-1].content if state.messages else ""
-    complaints = state.artifacts.get("intake", {}).get("chief_complaints") or _infer_chief_complaints(query)
+    full_user_history = "；".join(item.content for item in state.messages if item.role == "user")
+    complaints = state.artifacts.get("intake", {}).get("chief_complaints") or _infer_chief_complaints(full_user_history or query)
     profile = state.user_context.profile_facts or {}
     reasons: list[str] = []
     level = "routine_outpatient"
     label = "普通门诊评估"
 
-    emergency = _query_has_any(query, EMERGENCY_KEYWORDS)
-    consider_admission = _query_has_any(query, ADMISSION_HINTS) or (
+    emergency = _query_has_any(full_user_history or query, EMERGENCY_KEYWORDS) or bool(state.red_flags)
+    consider_admission = _query_has_any(full_user_history or query, ADMISSION_HINTS) or (
         state.risk_level == "high" and _profile_has_high_risk(profile)
     )
 
@@ -337,7 +350,7 @@ def build_triage_decision(state: OrchestratorState) -> dict[str, Any]:
         reasons.append("当前更像低到中低风险问题，可先完成首程问诊再决定是否线下就诊")
 
     if _is_reproductive_female(state.user_context.sex, state.user_context.age) and any(
-        item in query for item in ("腹痛", "阴道流血", "停经", "恶心", "呕吐")
+        item in full_user_history for item in ("腹痛", "阴道流血", "停经", "恶心", "呕吐")
     ):
         reasons.append("育龄女性伴腹痛/出血/恶心时需排除妊娠相关问题")
         if level == "routine_outpatient":

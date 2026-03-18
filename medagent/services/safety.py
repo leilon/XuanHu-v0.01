@@ -6,6 +6,8 @@ class SafetyGuard:
         self.config = config
 
     def detect_risk(self, text: str) -> str:
+        if any(k in text for k in ("胸口压着疼", "喘不过气", "发黑发亮", "嘴唇发胀", "喉咙发紧", "说话不清")):
+            return "high"
         if any(k in text for k in self.config.emergency_keywords):
             return "high"
         if any(k in text for k in ("发热", "咳嗽", "头痛", "腹痛", "尿痛", "皮疹")):

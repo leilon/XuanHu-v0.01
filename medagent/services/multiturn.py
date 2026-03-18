@@ -13,18 +13,51 @@ DURATION_RE = re.compile(r"(\d+)\s*(小时|天|周|个月|年)")
 
 RED_FLAG_PATTERNS = {
     "胸痛": "胸痛",
+    "胸口压着疼": "胸痛",
+    "胸口发紧": "胸闷明显",
     "胸闷": "胸闷明显",
     "呼吸困难": "呼吸困难",
     "喘不上气": "喘不上气",
+    "喘不过气": "喘不上气",
     "抽搐": "抽搐",
     "意识不清": "意识不清",
     "昏迷": "昏迷",
     "便血": "便血",
     "黑便": "黑便",
+    "发黑发亮": "黑便",
     "呕血": "呕血",
     "单侧无力": "单侧无力",
     "言语不清": "言语不清",
     "高热不退": "高热不退",
+    "嘴唇发胀": "疑似过敏性反应",
+    "喉咙发紧": "疑似过敏性反应",
+}
+
+DISPOSITION_ACCEPT_PATTERNS = (
+    "我现在去急诊",
+    "我现在去医院",
+    "我马上去医院",
+    "我马上去急诊",
+    "我这就去医院",
+    "我这就去急诊",
+    "我今天就去看",
+    "我先去把这些检查做了",
+    "好的，我现在去急诊",
+    "好的，那我先去把这些检查做了",
+    "明白了，我今天就去看",
+)
+
+DISPOSITION_DECLINE_PATTERNS = (
+    "先不去",
+    "暂时不去",
+    "先观察",
+)
+
+TRIAGE_PRIORITY = {
+    "routine_outpatient": 0,
+    "urgent_outpatient": 1,
+    "consider_admission": 2,
+    "emergency": 3,
 }
 
 
@@ -110,11 +143,32 @@ def select_followup_questions(state: OrchestratorState, limit: int = 2) -> list[
     return selected
 
 
+def _user_accepts_disposition(text: str) -> bool:
+    latest = text.strip()
+    if not latest:
+        return False
+    if any(token in latest for token in DISPOSITION_DECLINE_PATTERNS):
+        return False
+    return any(token in latest for token in DISPOSITION_ACCEPT_PATTERNS)
+
+
 def should_stop_visit(state: OrchestratorState, max_turns: int = 6) -> tuple[bool, str]:
     triage = state.artifacts.get("triage", {})
     triage_level = str(triage.get("level", "")).strip()
+    latest_user_text = ""
+    for item in reversed(state.messages):
+        if item.role == "user":
+            latest_user_text = item.content.strip()
+            break
 
-    if triage_level in {"emergency", "consider_admission"}:
+    if _user_accepts_disposition(latest_user_text):
+        if triage_level in {"urgent_outpatient", "consider_admission", "emergency"}:
+            return True, "patient_accepted_disposition"
+
+    if triage_level == "emergency" and state.turn_index >= 2:
+        return True, "triage_escalation"
+
+    if triage_level == "consider_admission" and state.turn_index >= 3:
         return True, "triage_escalation"
     if state.turn_index >= max_turns:
         return True, "max_turns_reached"
@@ -128,6 +182,13 @@ def should_stop_visit(state: OrchestratorState, max_turns: int = 6) -> tuple[boo
 def build_preliminary_assessment(state: OrchestratorState) -> str:
     intake = state.artifacts.get("intake", {})
     complaints = intake.get("chief_complaints", [])
+    triage = state.artifacts.get("triage", {})
+    triage_level = str(triage.get("level", "")).strip()
+
+    if triage_level == "emergency":
+        return "当前更像需要立即急诊排查的高风险问题，应先线下急诊评估，再决定进一步诊断。"
+    if triage_level == "consider_admission":
+        return "当前更像需要急诊评估并考虑留观或收治的问题，应优先完成线下评估。"
 
     if "发热/呼吸道症状" in complaints:
         return "考虑呼吸道感染相关问题，需结合体温、气促程度和影像检查进一步判断。"
@@ -169,6 +230,8 @@ def refresh_visit_record(state: OrchestratorState) -> VisitRecord:
     user_messages = [item.content.strip() for item in state.messages if item.role == "user" and item.content.strip()]
     intake = state.artifacts.get("intake", {})
     triage = state.artifacts.get("triage", {})
+    new_triage_level = str(triage.get("level", "")).strip()
+    new_triage_label = str(triage.get("label", "")).strip()
 
     record.chief_complaint = record.chief_complaint or (user_messages[0] if user_messages else "")
     record.history_of_present_illness = "；".join(user_messages[-6:])[:1000]
@@ -181,7 +244,11 @@ def refresh_visit_record(state: OrchestratorState) -> VisitRecord:
     record.red_flags = list(state.red_flags)
     record.recommended_tests = list(intake.get("recommended_tests", [])[:4])
     record.preliminary_assessment = build_preliminary_assessment(state)
-    record.triage_label = str(triage.get("label", "")).strip()
+    current_priority = TRIAGE_PRIORITY.get(record.triage_level, -1)
+    new_priority = TRIAGE_PRIORITY.get(new_triage_level, -1)
+    if new_priority >= current_priority:
+        record.triage_level = new_triage_level
+        record.triage_label = new_triage_label
     record.source_documents = list(state.artifacts.get("knowledge_docs", [])[:3])
     record.human_readable_summary = build_human_readable_summary(record, state)
     state.visit_record = record

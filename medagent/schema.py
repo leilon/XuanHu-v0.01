@@ -41,6 +41,7 @@ class VisitRecord:
     red_flags: list[str] = field(default_factory=list)
     recommended_tests: list[str] = field(default_factory=list)
     preliminary_assessment: str = ""
+    triage_level: str = ""
     triage_label: str = ""
     human_readable_summary: str = ""
     source_documents: list[dict[str, Any]] = field(default_factory=list)

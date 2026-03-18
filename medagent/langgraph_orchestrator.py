@@ -268,6 +268,23 @@ class LangChainOrchestrator(Orchestrator):
             lines.append(f"建议检查：{'、'.join(tests[:4])}")
         return "\n".join(lines)
 
+    def _format_completed_turn_response(self, state: OrchestratorState) -> str:
+        triage = state.artifacts.get("triage", {})
+        intake = state.artifacts.get("intake", {})
+        label = triage.get("label") or (state.visit_record.triage_label if state.visit_record else "建议线下就医")
+        department = triage.get("department", "相应专科")
+        assessment = build_preliminary_assessment(state)
+        tests = intake.get("recommended_tests", [])[:4]
+
+        lines = [str(label)]
+        if assessment:
+            lines.append(assessment)
+        if department:
+            lines.append(f"建议尽快前往{department}完成线下评估。")
+        if tests:
+            lines.append(f"建议优先做这些检查：{'、'.join(tests)}")
+        return "\n".join(lines)
+
     def _compose_turn_response(
         self,
         state: OrchestratorState,
@@ -275,6 +292,14 @@ class LangChainOrchestrator(Orchestrator):
         follow_up_questions: list[str],
         visit_completed: bool,
     ) -> str:
+        if visit_completed and state.stop_reason in {
+            "triage_escalation",
+            "patient_accepted_disposition",
+            "question_queue_exhausted",
+            "enough_information_collected",
+        }:
+            return self._format_completed_turn_response(state)
+
         system_prompt = self._load_prompt("orchestrator")
         if not system_prompt:
             return self._fallback_turn_response(state, follow_up_questions, visit_completed)
