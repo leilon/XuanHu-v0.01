@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+import re
 
 
 @dataclass
@@ -19,6 +20,10 @@ class PatientSimulator:
 
     def __init__(self, config: SimConfig | None = None) -> None:
         self.config = config or SimConfig()
+        self._answered_slots: dict[str, set[str]] = {}
+
+    def reset_case(self, scenario_id: str) -> None:
+        self._answered_slots.pop(scenario_id, None)
 
     def _call_api(self, system_prompt: str, user_prompt: str) -> str | None:
         api_key = os.getenv(self.config.api_key_env, "")
@@ -42,6 +47,62 @@ class PatientSimulator:
             ],
         )
         return resp.choices[0].message.content or ""
+
+    def _match_rule(self, latest_agent_reply: str, rule: dict) -> bool:
+        text = latest_agent_reply.lower()
+        keywords = [str(item).lower() for item in rule.get("match_any", [])]
+        if not keywords:
+            return False
+        return any(keyword in text for keyword in keywords)
+
+    def _pick_rule_responses(self, scenario: dict, latest_agent_reply: str) -> list[str]:
+        scenario_id = str(scenario.get("id", scenario.get("name", "default_case")))
+        answered = self._answered_slots.setdefault(scenario_id, set())
+        rules = scenario.get("hidden_case", {}).get("qa_rules", [])
+        responses: list[str] = []
+
+        for rule in rules:
+            slot = str(rule.get("slot", "")).strip()
+            if slot and slot in answered:
+                continue
+            if self._match_rule(latest_agent_reply, rule):
+                response = str(rule.get("response", "")).strip()
+                if response:
+                    responses.append(response)
+                    if slot:
+                        answered.add(slot)
+            if len(responses) >= 2:
+                break
+        return responses
+
+    def _style_wrap(self, scenario: dict, text: str) -> str:
+        style = str(scenario.get("speaking_style", "plain")).lower()
+        education = str(scenario.get("education_level", "")).lower()
+        if style == "fragmented":
+            return text.replace("；", "，").replace("。", "")
+        if style == "anxious":
+            return f"{text}，我有点担心。"
+        if education in {"middle_school", "junior_middle", "高中", "初中"}:
+            return text.replace("呼吸困难", "喘不上气").replace("腹痛", "肚子痛")
+        return text
+
+    def _fallback_rule_based(self, scenario: dict, latest_agent_reply: str, dialogue_history: list[dict]) -> str:
+        responses = self._pick_rule_responses(scenario, latest_agent_reply)
+        if responses:
+            return self._style_wrap(scenario, "；".join(responses))
+
+        text = latest_agent_reply
+        if any(keyword in text for keyword in ("急诊", "120", "立即就诊")):
+            return "好的，我现在去急诊。"
+        if any(keyword in text for keyword in ("发热门诊", "呼吸内科", "尽快线下就诊")):
+            return "明白了，我今天就去看。"
+        if any(keyword in text for keyword in ("检查", "化验", "胸片", "CT", "血常规")):
+            return "好的，那我先去把这些检查做了。"
+
+        opening = str(scenario.get("opening", "我最近不太舒服。")).strip()
+        if dialogue_history:
+            return "还有别的需要我补充的吗？"
+        return opening
 
     def respond(
         self,
@@ -67,9 +128,4 @@ class PatientSimulator:
         if api_text:
             return api_text.strip()
 
-        # Fallback simulation.
-        if scenario.get("name") == "fever_cough_case":
-            return "发烧两天，最高39度，咳嗽有痰，无已知药物过敏。"
-        if scenario.get("name") == "report_case":
-            return "我有体检报告，白细胞升高，最近乏力，想知道要不要马上去医院。"
-        return "我最近不太舒服，想咨询一下。"
+        return self._fallback_rule_based(scenario, latest_agent_reply, dialogue_history)
